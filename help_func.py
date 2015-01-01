@@ -43,8 +43,11 @@ class HelpFunc:
     def get_img_by_url(self,url,path,filename):
         try:
             local = os.path.join(path,filename)
-            urllib.urlretrieve(url,local)
-            return local
+            filename,headers = urllib.urlretrieve(url.replace('\\','/'),local)
+
+            if headers.getheader('Content-Type') != 'image/jpeg':
+                raise UrlError(url)
+            return filename
         except Exception as e:
             raise UrlError(url)
 
@@ -53,7 +56,10 @@ if __name__ == '__main__':
     url = 'http://www.hercity.com/upfiles/2011/09/20110929170027315649.jpg'
     url2 = 'http://www.hercity.com/upfiles/2011/09/20110929170027315642.jpg'
     url3 = 'http://123.jpg'
-    print hf.get_img_by_url(url3,'img','test123.jpg')
+    url4 = 'http://192.168.1.123/imgareaselect/imgs/1.jpg'
+    url5 = 'http://192.168.1.123\\imgareaselect\\imgs\\1.jpg'
+    #print url5.replace('\\','/')
+    print hf.get_img_by_url(url2,'img','test123.jpg')
 
 
 

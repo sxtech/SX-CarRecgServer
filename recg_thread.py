@@ -1,14 +1,14 @@
 # -*- coding: cp936 -*-
-import logging
-import time
 import os
+import time
 import Queue
+import logging
 import threading
 
 import gl
-from carrecg import CarRecgEngine
 from help_func import HelpFunc
 from help_func import UrlError
+from carrecg import CarRecgEngine
 
 logger = logging.getLogger('root')
 
@@ -43,6 +43,8 @@ class RecgThread(threading.Thread):
                     if carinfo == None:
                         recginfo = {'carinfo':None,'msg':'Recognise Error','code':102}
                         logger.error('Recognise Error')
+                    elif carinfo['head']['code'] == 0:
+                        recginfo = {'carinfo':None,'msg':'Recg Server Error','code':109} 
                     else:
                         recginfo = {'carinfo':carinfo['body'],'msg':'Success','code':100} 
                     os.remove(localpath)
@@ -52,6 +54,7 @@ class RecgThread(threading.Thread):
                 except Exception,e:
                     logger.exception(e)
                     recginfo = {'carinfo':None,'msg':'Unknow Error','code':104}
+
                 try:
                     info['queue'].put(recginfo)
                 except Exception,e:
