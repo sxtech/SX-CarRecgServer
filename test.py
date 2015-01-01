@@ -10,7 +10,7 @@ def TestHttpPost():
   word=u'美国'.encode('utf8')
   urlstr = 'http://localhost:8060/recg'
   
-  json_data = json.dumps({'imgurl':'http://localhost/imgareaselect/imgs/6.jpg','coordinates':[1301,1007,2448,2048]})
+  json_data = json.dumps({'imgurl':'http://192.168.1.123/imgareaselect/imgs/1.jpg','coordinates':[1301,1007,2448,2048]})
   #print json_data
   data={'key':'sx2767722_10','info': json_data} 
   

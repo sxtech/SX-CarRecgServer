@@ -10,10 +10,7 @@ class CarRecgEngine:
         #创建车型识别引擎
         self.dll = ctypes.cdll.LoadLibrary( 'CarRecogniseEngine.dll' )
         self.engineID = self.dll.InitialEngine()
-        #创建图片截取文件夹
         self.file = 'cropimg'
-        if os.path.exists(self.file) == False:
-            os.makedirs(self.file)
 
     #识别车辆信息
     def imgrecg(self,path,coordinates=None):
@@ -70,7 +67,7 @@ if __name__ == '__main__':
     cr = CarRecgEngine()
     area1 = (0,357,1316,2046)
     area2 = (0,357,2398,1779)
-    a=cr.imgrecg('img/15023100073.jpg',area1)
+    a=cr.imgrecg('img/test.jpg',None)
     #a = '{"head":{"code":1,"count":0,"msg":"识别成功"},"body":"[{"ywcl":1,"ywhp":1,"hpzl":"02","hphm":"粤LXA293","cllx":"K33","csys":"J","ppdm":"012","clpp":"比亚迪F3","kxd": 69,"jcsj":"2014-10-28 23":51":17"}]"}'
     #b = '{"head":{"code":1,"count":0,"msg":"识别成功"},"body":"123"}'
     #print a[]

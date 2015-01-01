@@ -3,11 +3,11 @@ import sqlite3
 import datetime
 import gl
 
-def sqlitePool(db="carrecgser.db",maxu=1000):
-    gl.sqlitepool = PersistentDB(
-        sqlite3,
-        maxusage = maxu,
-        database = db)
+##def sqlitePool(db="carrecgser.db",maxu=1000):
+##    gl.sqlitepool = PersistentDB(
+##        sqlite3,
+##        maxusage = maxu,
+##        database = db)
     
 class U_Sqlite:
     def __init__(self):
@@ -23,7 +23,7 @@ class U_Sqlite:
         except Exception,e:
             pass
 
-    def createTable(self):
+    def create_table(self):
         sql = '''CREATE TABLE IF NOT EXISTS "uploadsys" (
                 "id"  INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 "year"  INTEGER NOT NULL DEFAULT 2014,
@@ -40,16 +40,6 @@ class U_Sqlite:
             self.cur.execute("INSERT INTO uploadsys (id,year,month,day,hour) VALUES(1,%s,%s,%s,%s)"%(now.year,now.month,now.day,0))
             self.conn.commit()
 
-    #获取数据上传状态记录
-    def getUploadsys(self):
-        try:
-            self.cur.execute("select * from uploadsys where id=1")
-            s = self.cur.fetchone()
-        except sqlite3.Error as e:
-            raise
-        else:
-            self.conn.commit()
-            return s
 
     #获取用户信息
     def get_users(self):
@@ -85,7 +75,7 @@ if __name__ == "__main__":
     #import gl
     #sqlitePool()
     sl = U_Sqlite()
-    print sl.get_user_by_key('keys')
+    print sl.get_users()
 
     del sl
 

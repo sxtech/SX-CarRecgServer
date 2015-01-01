@@ -3,6 +3,18 @@ import datetime
 import os
 import urllib
 
+class MyError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+class UrlError(Exception):
+    def __init__(self, value=''):
+        self.value = value
+    def __str__(self):
+        return repr('Url Error')
+
 class HelpFunc:
     def getTime(self):
         return datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
@@ -33,14 +45,15 @@ class HelpFunc:
             local = os.path.join(path,filename)
             urllib.urlretrieve(url,local)
             return local
-        except Exception,e:
-            raise
+        except Exception as e:
+            raise UrlError(url)
 
 if __name__ == '__main__':
     hf = HelpFunc()
     url = 'http://www.hercity.com/upfiles/2011/09/20110929170027315649.jpg'
-    url2 = 'http://123.jpg'
-    print hf.get_img_by_url(url2,'img','test123.jpg')
+    url2 = 'http://www.hercity.com/upfiles/2011/09/20110929170027315642.jpg'
+    url3 = 'http://123.jpg'
+    print hf.get_img_by_url(url3,'img','test123.jpg')
 
 
 
