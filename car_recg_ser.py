@@ -53,13 +53,12 @@ def initLogging(logFilename):
     logger.addHandler(Rthandler)
 
 def version():
-    return 'SX-CarRecgServer V0.1.0'
+    return 'SX-CarRecgServer V0.1.2'
 
 def hello(environ, start_response):
     '''The WSGI_ application handler which returns an iterable
     over the "Hello World!" message.'''
     #request_body = environ['wsgi.input']
-    print environ
     if environ['REQUEST_METHOD'] == 'POST' and environ['PATH_INFO']== '/recg':
         data = request_data(environ["wsgi.input"].read())
         status = '200 OK'
@@ -74,7 +73,6 @@ def hello(environ, start_response):
     start_response(status, response_headers)
     return iter([data])
 
-
 def server(description=None, **kwargs):
     '''Create the :class:`.WSGIServer` running :func:`hello`.'''
     description = description or 'Pulsar Hello World Application'
@@ -83,7 +81,10 @@ def server(description=None, **kwargs):
 def request_data(wsgi_input):
     data = urllib.unquote_plus(wsgi_input)
     post_data = urlparse.parse_qs(data,True)
-    if post_data.get('key',None)[0] != 'sx2767722':
+    #print post_data
+    priority =  gl.KEYSDICT.get(post_data.get('key',[None])[0],None)
+    print 'priority',priority
+    if priority is None:
         return json.dumps({'carinfo':None,'msg':'Key Error','code':105})
     
     if post_data.get('info',None) == None:
@@ -92,7 +93,8 @@ def request_data(wsgi_input):
     info = json.loads(post_data.get('info',[''])[0])
 
     info['queue'] = Queue.Queue()
-    gl.RECGQUE.put(info)
+    gl.RECGQUE.put((priority,info))
+    #print "user_key['priority']",user_key['priority']
     try:
         recginfo = info['queue'].get(timeout=15)
         return json.dumps(recginfo)
@@ -103,7 +105,8 @@ class RecgServer:
     def __init__(self):
         self.crs = CarRecgSerIni()
         self.sys_ini = self.crs.getSysConf()
-        gl.RECGQUE = Queue.Queue()
+        gl.RECGQUE = Queue.PriorityQueue()
+        gl.KEYSDICT = {'sx2767722_10':{'priority':10},'sx2767722_1':{'priority':1}}
         #创建车辆识别线程
         for c in range(self.sys_ini.get('threads',4)):
             RecgThread(c).start()

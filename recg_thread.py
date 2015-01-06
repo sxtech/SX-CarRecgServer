@@ -28,7 +28,7 @@ class RecgThread(threading.Thread):
     def run(self):
         while 1:
             try:
-                info = self.queue.get(block=False)
+                p,info = self.queue.get(block=False)
             except Queue.Empty:
                 time.sleep(1)
             except Exception,e:

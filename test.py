@@ -12,7 +12,7 @@ def TestHttpPost():
   
   json_data = json.dumps({'imgurl':'http://localhost/imgareaselect/imgs/6.jpg','coordinates':[1301,1007,2448,2048]})
   #print json_data
-  data={'key':'sx2767722','info': json_data} 
+  data={'key':'sx2767722_10','info': json_data} 
   
   h = httplib2.Http('.cache')
   response,content = h.request(urlstr, 'POST', urlencode(data), headers={'Content-Type': 'application/x-www-form-urlencoded'})  
