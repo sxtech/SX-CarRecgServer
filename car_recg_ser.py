@@ -6,7 +6,7 @@
 101: Request Error (请求错误)
 102: Recognise Error (识别错误)
 103: Url Error (图片url路径错误)
-104: Recognise Error (识别错误)
+104: Unknow Error (未知错误)
 105: Key Error (用户密钥错误)
 106: Json Format Error (json格式错误)
 107: Time Out (超时)
@@ -119,7 +119,7 @@ def request_data(wsgi_input):
     if gl.P_SIZE[priority] <= user_info['multiple']*gl.THREADS:
         priority = user_info['priority']
     elif gl.RECGQUE.qsize() > gl.MAXSIZE:
-        return json.dumps({'carinfo':None,'msg':'Server Is Busy','code':108})
+        return json.dumps({'carinfo':None,'msg':'Server Is Busy','code':108,'state':{'threads':gl.THREADS,'qsize':gl.P_SIZE},'user':user_info})
     else:
         priority += user_info['priority'] + 10
         

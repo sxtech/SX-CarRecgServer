@@ -1,9 +1,11 @@
 # -*- coding: cp936 -*-
 import ctypes
 from ctypes import *
-import re,json
-from PIL import Image
 import os
+import re
+import json
+
+from PIL import Image
 
 class CarRecgEngine:
     def __init__(self):
@@ -25,7 +27,7 @@ class CarRecgEngine:
 
             ret = self.dll.doRecg( self.engineID, byref(pStrUrl),byref(szResult), 1024);
 
-            return self.rematch(szResult.value)
+            return json.loads(szResult.value,'gbk')
         except Exception,e:
             return None
         finally:
@@ -33,8 +35,7 @@ class CarRecgEngine:
                 if recg_path != None:
                     os.remove(recg_path)
             except Exception,e:
-                pass
-        
+                pass    
 
     def uninit(self):
         self.dll.UnInitialEngine(self.engineID)
@@ -66,9 +67,9 @@ class CarRecgEngine:
 if __name__ == '__main__':
     cr = CarRecgEngine()
     area1 = (0,357,1316,2046)
-    area2 = (0,357,2398,1779)
-    a=cr.imgrecg('img/test.jpg',None)
-    #a = '{"head":{"code":1,"count":0,"msg":"识别成功"},"body":"[{"ywcl":1,"ywhp":1,"hpzl":"02","hphm":"粤LXA293","cllx":"K33","csys":"J","ppdm":"012","clpp":"比亚迪F3","kxd": 69,"jcsj":"2014-10-28 23":51":17"}]"}'
+    area2 = (221,409,1194,1351)
+    a=cr.imgrecg('img/test6.jpg',(221,221,1208,1535))
+    #a = '{"head":{"code":1,"count":0,"msg":"识别功"},"body":"[{"ywcl":1,"ywhp":1,"hpzl":"02","hphm":"粤LXA293","cllx":"K33","csys":"J","ppdm":"012","clpp":"比亚迪F3","kxd": 69,"jcsj":"2014-10-28 23":51":17"}]"}'
     #b = '{"head":{"code":1,"count":0,"msg":"识别成功"},"body":"123"}'
     #print a[]
     #b = cr.imgrecg(a)

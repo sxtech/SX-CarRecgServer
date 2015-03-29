@@ -1,0 +1,1 @@
+python pyinstaller.py -F -n CarRecgServer --version-file=C:\Users\wen\Documents\GitHub\SX-CarRecgServer\file_version_info.txt --icon=C:\Users\wen\Documents\GitHub\SX-CarRecgServer\logo.ico C:\Users\wen\Documents\GitHub\SX-CarRecgServer\car_recg_ser.py
