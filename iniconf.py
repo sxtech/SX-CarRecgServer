@@ -8,10 +8,18 @@ class CarRecgSerIni:
         self.cf = ConfigParser.ConfigParser()
         self.cf.read(confpath)
 
-    def getSysConf(self):
+    def get_sys_conf(self):
         sysconf = {}
         sysconf['threads'] = self.cf.getint('SYSSET','threads')
         sysconf['port'] = self.cf.getint('SYSSET','port')
+        sysconf['selfip'] = self.cf.get('SYSSET','selfip')
+        
+        return sysconf
+
+    def get_ser_centre_conf(self):
+        sysconf = {}
+        sysconf['ip'] = self.cf.get('SERCENTRE','ip')
+        
         return sysconf
 
      
@@ -19,10 +27,9 @@ if __name__ == "__main__":
 
     try:
         ftpini = CarRecgSerIni()
-        s= ftpini.getSysConf()
+        s= ftpini.getSerCentreConf()
         print s
 
         #del i
     except ConfigParser.NoOptionError,e:
         print e
-        time.sleep(10)

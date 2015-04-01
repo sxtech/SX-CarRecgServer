@@ -2,6 +2,10 @@
 import datetime
 import os
 import urllib
+from urllib import urlencode
+import json
+
+import httplib2
 
 class MyError(Exception):
     def __init__(self, value):
@@ -51,6 +55,14 @@ class HelpFunc:
         except Exception as e:
             raise UrlError(url)
 
+    def send_post(self,ip,action,port,post_data):
+        urlstr = 'http://%s:%s/%s'%(ip,str(port),action)
+      
+        h = httplib2.Http('.cache')
+        response,content = h.request(urlstr, 'POST', urlencode(post_data), headers={'Content-Type': 'application/x-www-form-urlencoded'})  
+
+        return (response,content)
+
 if __name__ == '__main__':
     hf = HelpFunc()
     url = 'http://www.hercity.com/upfiles/2011/09/20110929170027315649.jpg'
@@ -58,9 +70,12 @@ if __name__ == '__main__':
     url3 = 'http://123.jpg'
     url4 = 'http://192.168.1.123/imgareaselect/imgs/1.jpg'
     url5 = 'http://192.168.1.123\\imgareaselect\\imgs\\1.jpg'
-    #print url5.replace('\\','/')
-    print hf.get_img_by_url(url2,'img','test123.jpg')
+    data = {'ip':'192.168.1.321','port':8060,'key':'keys','priority':10,'threads':4,'mark':'test'}
 
+    post_data={'serinfo':json.dumps(data)}
+    
+    print hf.send_post('127.0.0.1','join',8017,post_data)
 
+    del hf
 
     

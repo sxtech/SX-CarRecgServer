@@ -22,6 +22,7 @@ import Queue
 import os
 import logging
 import logging.handlers
+import time
 
 try:
     from pulsar import MethodNotAllowed
@@ -37,6 +38,7 @@ import gl
 from recg_thread import RecgThread
 from iniconf import CarRecgSerIni
 from sqlitedb import U_Sqlite
+from help_func import HelpFunc
 
 def initLogging(logFilename):
     """Init for logging"""
@@ -55,7 +57,7 @@ def initLogging(logFilename):
     logger.addHandler(Rthandler)
 
 def version():
-    return 'SX-CarRecgServer V0.2.1'
+    return 'SX-CarRecgServer V0.4.0'
 
 def hello(environ, start_response):
     '''The WSGI_ application handler which returns an iterable
@@ -80,7 +82,7 @@ def hello(environ, start_response):
 
 def server(description=None, **kwargs):
     '''Create the :class:`.WSGIServer` running :func:`hello`.'''
-    description = description or 'Pulsar Hello World Application'
+    description = description or 'RecgServer Application'
 
     return wsgi.WSGIServer(hello, name='RecgServer', description=description, **kwargs)
 
@@ -143,8 +145,10 @@ def request_data(wsgi_input):
 class RecgServer:
     def __init__(self):
         self.crs = CarRecgSerIni()
-        self.sysini = self.crs.getSysConf()
+        self.sysini = self.crs.get_sys_conf()
+        self.centreini = self.crs.get_ser_centre_conf()
         self.sl = U_Sqlite()
+        self.hf = HelpFunc()
         gl.RECGQUE = Queue.PriorityQueue()
         gl.LOCK = threading.Lock()
 
@@ -160,7 +164,20 @@ class RecgServer:
     def __del__(self):
         del self.crs
         del self.sl
-        
+        del self.hf
+
+    def join_centre(self):
+        time.sleep(3)
+        key_list = sorted(gl.KEYSDICT.iteritems(), key=lambda d:d[1]['priority'], reverse = False)
+
+        data = {'ip':self.sysini['selfip'],'port':self.sysini['port'],'key':key_list[0][0],'priority':10,'threads':self.sysini['threads'],'mark':''}
+        post_data={'serinfo':json.dumps(data)}
+        try:
+            response,content = self.hf.send_post(self.centreini['ip'],'join',self.sysini['port'],post_data)
+            logger.info(content)
+        except Exception as e:
+            logger.error(e)
+
     def main(self):
         for i in self.sl.get_users():
             gl.KEYSDICT[i[1]] = {'priority':i[2],'multiple':i[3]}
@@ -171,7 +188,10 @@ class RecgServer:
         #创建车辆识别线程
         for c in range(gl.THREADS):
             RecgThread(c).start()
-            
+
+        t = threading.Thread(target=self.join_centre)
+        t.start()      
+        #web服务
         server().start()
 
 if __name__ == '__main__':  # pragma nocover
