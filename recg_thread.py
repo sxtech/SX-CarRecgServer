@@ -1,4 +1,4 @@
-# -*- coding: cp936 -*-
+# -*- coding: utf-8 -*-
 import os
 import time
 import Queue
@@ -6,60 +6,77 @@ import logging
 import threading
 
 import gl
-from help_func import HelpFunc
-from help_func import UrlError
+from requests_func import RequestsFunc
 from carrecg import CarRecgEngine
 
 logger = logging.getLogger('root')
 
-class RecgThread(threading.Thread):
-    def __init__(self,_id):
-        threading.Thread.__init__(self)
-        self._id = _id
-        self.queue = gl.RECGQUE
 
+class RecgThread(threading.Thread):
+
+    def __init__(self, _id):
+        threading.Thread.__init__(self)
+        # 识别线程ID
+        self._id = _id
+        # 识别信息队列
+        self.queue = gl.RECGQUE
+        # 创建识别引擎对象
         self.cre = CarRecgEngine()
-        self.hf = HelpFunc()
+        # HTTP客户端类对象
+        self.rf = RequestsFunc()
 
     def kill(self):
         del self.cre
-        del self.hf
+        del self.rf
 
     def run(self):
         while 1:
             try:
-                p,info,key = self.queue.get(block=False)
+                if gl.IS_QUIT:
+                    break
+                p, info, key = self.queue.get(block=False)
             except Queue.Empty:
                 time.sleep(1)
-            except Exception,e:
-                logger.exception(e)
+            except Exception as e:
+                logger.error(e)
                 time.sleep(1)
             else:
                 recginfo = {}
+                filename = os.path.join('img', '%s.jpg' % str(self._id))
                 try:
-                    localpath = self.hf.get_img_by_url(info['imgurl'],'img','%s.jpg'%str(self._id))
-
-                    carinfo = self.cre.imgrecg(localpath,info['coordinates'])
-                    if carinfo == None:
-                        recginfo = {'carinfo':None,'msg':'Recognise Error','code':102}
-                        logger.error('Recognise Error')
-                    elif carinfo['head']['code'] == 0:
-                        recginfo = {'carinfo':None,'msg':'Recg Server Error','code':109} 
-                    else:
-                        recginfo = {'carinfo':carinfo['body'],'msg':'Success','code':100} 
-                    os.remove(localpath)
-                except UrlError as e:
+                    self.rf.get_url_img(info['imgurl'], filename)
+                except Exception as e:
                     logger.error(e)
-                    recginfo = {'carinfo':None,'msg':'Url Error','code':103}
-                except Exception,e:
-                    logger.exception(e)
-                    recginfo = {'carinfo':None,'msg':'Unknow Error','code':104}
+                    recginfo = {'carinfo': None,
+                                'msg': 'Url Error',
+                                'code': 103}
+                else:
+                    try:
+                        carinfo = self.cre.imgrecg(filename,
+                                                   info['coordinates'])
+                        if carinfo is None:
+                            recginfo = {'carinfo': None,
+                                        'msg': 'Recognise Error',
+                                        'code': 102}
+                            logger.error('Recognise Error')
+                        elif carinfo['head']['code'] == 0:
+                            recginfo = {'carinfo': None,
+                                        'msg': 'Recg Server Error',
+                                        'code': 109}
+                        else:
+                            recginfo = {'carinfo': carinfo['body'],
+                                        'msg': 'Success',
+                                        'code': 100}
+                        os.remove(filename)
+                    except Exception as e:
+                        logger.exception(e)
+                        recginfo = {'carinfo': None,
+                                    'msg': 'Unknow Error',
+                                    'code': 104}
 
                 try:
                     info['queue'].put(recginfo)
-                except Exception,e:
+                except Exception as e:
                     logger.exception(e)
 
-
-
-                    
+        self.kill()

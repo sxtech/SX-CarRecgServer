@@ -8,7 +8,7 @@ import json
 
 def TestHttpPost():
   word=u'美国'.encode('utf8')
-  urlstr = 'http://localhost:8060/recg'
+  urlstr = 'http://localhost:8017/recg'
   
   json_data = json.dumps({'imgurl':'http://localhost/imgareaselect/imgs/1.jpg','coordinates':None})
   #print json_data
@@ -16,8 +16,8 @@ def TestHttpPost():
   
   h = httplib2.Http('.cache')
   response,content = h.request(urlstr, 'POST', urlencode(data), headers={'Content-Type': 'application/x-www-form-urlencoded'})  
-
-  print json.loads(content)['carinfo'][0]['hphm']
+  print content
+  #print json.loads(content)['carinfo'][0]['hphm']
   
 if __name__ == '__main__':  # pragma nocover
   TestHttpPost()

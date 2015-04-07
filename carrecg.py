@@ -1,4 +1,4 @@
-# -*- coding: cp936 -*-
+# -*- coding: utf-8 -*-
 import ctypes
 from ctypes import *
 import os
@@ -7,60 +7,66 @@ import json
 
 from PIL import Image
 
+
 class CarRecgEngine:
+
     def __init__(self):
-        #´´½¨³µĞÍÊ¶±ğÒıÇæ
-        self.dll = ctypes.cdll.LoadLibrary( 'CarRecogniseEngine.dll' )
+        """åˆ›å»ºè½¦å‹è¯†åˆ«å¼•æ“"""
+        self.dll = ctypes.cdll.LoadLibrary('CarRecogniseEngine.dll')
         self.engineID = self.dll.InitialEngine()
         self.file = 'cropimg'
 
-    #Ê¶±ğ³µÁ¾ĞÅÏ¢
-    def imgrecg(self,path,coordinates=None):
+    def __del__(self):
+        self.dll.UnInitialEngine(self.engineID)
+
+    def imgrecg(self, path, coordinates=None):
+        """è¯†åˆ«è½¦è¾†ä¿¡æ¯"""
         try:
             recg_path = None
-            if coordinates != None:
-                path = self.crop_img(path,coordinates)
+            if coordinates is not None:
+                path = self.crop_img(path, coordinates)
                 recg_path = path
-                
-            pStrUrl = create_string_buffer(path)
-            szResult = create_string_buffer('\0'*1024)
 
-            ret = self.dll.doRecg( self.engineID, byref(pStrUrl),byref(szResult), 1024);
+            p_str_url = create_string_buffer(path)
+            sz_result = create_string_buffer('\0' * 1024)
 
-            return json.loads(szResult.value,'gbk')
-        except Exception,e:
+            ret = self.dll.doRecg(self.engineID, byref(p_str_url),
+                                  byref(sz_result), 1024)
+
+            return json.loads(sz_result.value, 'gbk')
+        except Exception:
             return None
         finally:
             try:
-                if recg_path != None:
+                if recg_path is not None:
                     os.remove(recg_path)
-            except Exception,e:
-                pass    
+            except Exception:
+                pass
 
     def uninit(self):
         self.dll.UnInitialEngine(self.engineID)
 
-    #×ª»¯±ê×¼Json¸ñÊ½
-    def rematch(self,j):
-        j = re.sub(r"{\s*(\w)",r'{"\1',j)
-        j = re.sub(r",\s*(\w)",r',"\1',j)
-        j = re.sub(r"(\D):",r'\1":',j)
+    def rematch(self, j):
+        """è½¬åŒ–æ ‡å‡†Jsonæ ¼å¼"""
+        j = re.sub(r"{\s*(\w)", r'{"\1', j)
+        j = re.sub(r",\s*(\w)", r',"\1', j)
+        j = re.sub(r"(\D):", r'\1":', j)
         j = j.replace("'", "\"")
 
-        return json.loads(j,'gbk')
+        return json.loads(j, 'gbk')
 
-    #Í¼Æ¬½ØÈ¡
-    def crop_img(self,path,coordinates):
+    def crop_img(self, path, coordinates):
+        """å›¾ç‰‡æˆªå–"""
         im = Image.open(path)
 
         box = (coordinates[0], coordinates[1], coordinates[2], coordinates[3])
         region = im.crop(box)
-        
+
         filename = os.path.basename(path)
 
-        crop_path = os.path.join(self.file,filename)
+        crop_path = os.path.join(self.file, filename)
         region.save(crop_path)
-        
+
         return crop_path
 
 
@@ -68,23 +74,12 @@ if __name__ == '__main__':
     cr = CarRecgEngine()
     area1 = (0,357,1316,2046)
     area2 = (221,409,1194,1351)
-    a=cr.imgrecg('img/test6.jpg',(221,221,1208,1535))
-    #a = '{"head":{"code":1,"count":0,"msg":"Ê¶±ğ¹¦"},"body":"[{"ywcl":1,"ywhp":1,"hpzl":"02","hphm":"ÔÁLXA293","cllx":"K33","csys":"J","ppdm":"012","clpp":"±ÈÑÇµÏF3","kxd": 69,"jcsj":"2014-10-28 23":51":17"}]"}'
-    #b = '{"head":{"code":1,"count":0,"msg":"Ê¶±ğ³É¹¦"},"body":"123"}'
+    a=cr.imgrecg('img/000.jpg',None)
+    #a = '{"head":{"code":1,"count":0,"msg":"è¯†åˆ«åŠŸ"},"body":"[{"ywcl":1,"ywhp":1,"hpzl":"02","hphm":"ç²¤LXA293","cllx":"K33","csys":"J","ppdm":"012","clpp":"æ¯”äºšè¿ªF3","kxd": 69,"jcsj":"2014-10-28 23":51":17"}]"}'
+    #b = '{"head":{"code":1,"count":0,"msg":"è¯†åˆ«æˆåŠŸ"},"body":"123"}'
     #print a[]
     #b = cr.imgrecg(a)
     print a
     #print b['body']
     #cr.uninit()
     del cr
-    #print os.path.exists('img3')
-    #print os.path.join('img','123.jpg')
-
-
-
-
-
-
-
-
-    

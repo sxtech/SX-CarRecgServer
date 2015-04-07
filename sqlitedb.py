@@ -1,82 +1,87 @@
-# -*- coding: cp936 -*-
+# -*- coding: utf-8 -*-
 import sqlite3
-import datetime
-import gl
 
-##def sqlitePool(db="carrecgser.db",maxu=1000):
-##    gl.sqlitepool = PersistentDB(
-##        sqlite3,
-##        maxusage = maxu,
-##        database = db)
-    
-class U_Sqlite:
+
+def dict_factory(cursor, row):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
+
+
+class RSqlite:
+
     def __init__(self):
-        #self.conn = gl.sqlitepool.connection(check_same_thread = False)
-        #self.cur  = self.conn.cursor()
-        self.conn = sqlite3.connect("carrecgser.db",check_same_thread = False)
-        self.cur  = self.conn.cursor()
-            
+        self.conn = sqlite3.connect("carrecgser.db", check_same_thread=False)
+        self.conn.row_factory = dict_factory
+        self.cur = self.conn.cursor()
+
     def __del__(self):
         try:
             self.conn.close()
             self.cur.close()
-        except Exception,e:
+        except Exception:
             pass
 
     def create_table(self):
-        sql = '''CREATE TABLE IF NOT EXISTS "uploadsys" (
+        sql = '''CREATE TABLE IF NOT EXISTS "user" (
                 "id"  INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                "year"  INTEGER NOT NULL DEFAULT 2014,
-                "month"  INTEGER NOT NULL DEFAULT 1,
-                "day"  INTEGER NOT NULL DEFAULT 1,
-                "hour"  INTEGER NOT NULL DEFAULT 0
+                "key"  TEXT,
+                "priority"  INTEGER NOT NULL DEFAULT 10,
+                "multiple"  INTEGER NOT NULL DEFAULT 2,
+                "mark"  TEXT
                 );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS "idx_key"
+                ON "user" ("key" ASC);
                 '''
 
         self.cur.executescript(sql)
         self.conn.commit()
-        if self.getUploadsys() == None:
-            now = datetime.datetime.now()
-            self.cur.execute("INSERT INTO uploadsys (id,year,month,day,hour) VALUES(1,%s,%s,%s,%s)"%(now.year,now.month,now.day,0))
-            self.conn.commit()
 
-
-    #获取用户信息
     def get_users(self):
+        """获取用户信息"""
         try:
-            self.cur.execute("select * from user")
+            self.cur.execute("SELECT * FROM user")
             s = self.cur.fetchall()
             self.conn.commit()
             return s
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             raise
 
-    #更新数据上传状态记录
-    def get_user_by_key(self,key):
+    def get_user_by_key(self, key):
+        """根据KEY获取用户信息"""
         try:
-            self.cur.execute("select * from user where key='%s'"%key)
+            self.cur.execute("SELECT * FROM user WHERE key='%s'" % key)
             s = self.cur.fetchone()
             self.conn.commit()
             return s
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             raise
-        
-    def endOfCur(self):
+
+    def add_user(self, userinfo):
+        """添加用户信息"""
+        try:
+            self.cur.execute(
+                "INSERT INTO user(ip,key,priority,multiple,mark) \
+                 VALUES(?,?,?,?,?)", userinfo)
+            self.conn.commit()
+        except sqlite3.Error:
+            raise
+
+    def end_of_cur(self):
         self.conn.commit()
-        
-    def sqlCommit(self):
+
+    def sql_commit(self):
         self.conn.commit()
-        
-    def sqlRollback(self):
+
+    def sql_rollback(self):
         self.conn.rollback()
-            
+
 if __name__ == "__main__":
-    #from DBUtils.PersistentDB import PersistentDB
-    #import gl
-    #sqlitePool()
-    sl = U_Sqlite()
-    print sl.get_users()
+    sl = RSqlite()
+    # sl.create_table()
+    serinfo = ('192.168.1.125', 8060, 'keytest', 10, 'mark')
+    print sl.get_server_by_ip('192.168.1.125')
 
     del sl
-
-

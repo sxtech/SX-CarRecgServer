@@ -1,18 +1,18 @@
-# -*- coding: cp936 -*-
+# -*- coding: utf-8 -*-
 '''
-³µÁ¾Ê¶±ğ·şÎñ£¬Ê¹ÓÃpython2.7°æ±¾£¬pulsar¿ò¼Ü¡£
-·µ»Ø´úÂë£º
-100: Success (Ê¶±ğ³É¹¦)
-101: Request Error (ÇëÇó´íÎó)
-102: Recognise Error (Ê¶±ğ´íÎó)
-103: Url Error (Í¼Æ¬urlÂ·¾¶´íÎó)
-104: Unknow Error (Î´Öª´íÎó)
-105: Key Error (ÓÃ»§ÃÜÔ¿´íÎó)
-106: Json Format Error (json¸ñÊ½´íÎó)
-107: Time Out (³¬Ê±)
-108: Server Is Busy (·şÎñ·±Ã¦)
-109: Recg Server Error (Ê¶±ğ·şÎñ´íÎó)
-110: No Info Parameter (POSTÈ±ÉÙinfo²ÎÊı)
+è½¦è¾†è¯†åˆ«æœåŠ¡ï¼Œä½¿ç”¨python2.7ç‰ˆæœ¬ï¼Œpulsaræ¡†æ¶ã€‚
+è¿”å›ä»£ç ï¼š
+100: Success (è¯†åˆ«æˆåŠŸ)
+101: Request Error (è¯·æ±‚é”™è¯¯)
+102: Recognise Error (è¯†åˆ«é”™è¯¯)
+103: Url Error (å›¾ç‰‡urlè·¯å¾„é”™è¯¯)
+104: Unknow Error (æœªçŸ¥é”™è¯¯)
+105: Key Error (ç”¨æˆ·å¯†é’¥é”™è¯¯)
+106: Json Format Error (jsonæ ¼å¼é”™è¯¯)
+107: Time Out (è¶…æ—¶)
+108: Server Is Busy (æœåŠ¡ç¹å¿™)
+109: Recg Server Error (è¯†åˆ«æœåŠ¡é”™è¯¯)
+110: No Info Parameter (POSTç¼ºå°‘infoå‚æ•°)
 '''
 import urllib
 import urlparse
@@ -32,172 +32,212 @@ except ImportError:  # pragma nocover
     from pulsar import MethodNotAllowed
 
 from pulsar.apps import wsgi
-from pulsar.apps import socket 
 
 import gl
 from recg_thread import RecgThread
 from iniconf import CarRecgSerIni
-from sqlitedb import U_Sqlite
-from help_func import HelpFunc
+from sqlitedb import RSqlite
+from requests_func import RequestsFunc
 
-def initLogging(logFilename):
+
+def init_logging(log_file_name):
     """Init for logging"""
-    path = os.path.split(logFilename)
+    path = os.path.split(log_file_name)
     if os.path.isdir(path[0]):
         pass
     else:
         os.makedirs(path[0])
     logger = logging.getLogger('root')
-    
-    Rthandler = logging.handlers.RotatingFileHandler(logFilename, maxBytes=100*1024*1024,backupCount=5)
+
+    rthandler = logging.handlers.RotatingFileHandler(
+        log_file_name, maxBytes=100 * 1024 * 1024, backupCount=5)
     logger.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s %(filename)s[line:%(lineno)d] [%(levelname)s] %(message)s',
-                                  datefmt='%Y-%m-%d %H:%M:%S')
-    Rthandler.setFormatter(formatter)
-    logger.addHandler(Rthandler)
+    formatter = logging.Formatter(
+        '%(asctime)s %(filename)s[line:%(lineno)d] \
+        [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    rthandler.setFormatter(formatter)
+    logger.addHandler(rthandler)
+
 
 def version():
-    return 'SX-CarRecgServer V0.4.0'
+    return 'SX-CarRecgServer V1.0.0'
+
 
 def hello(environ, start_response):
     '''The WSGI_ application handler which returns an iterable
     over the "Hello World!" message.'''
-    #request_body = environ['wsgi.input']
-    if environ['REQUEST_METHOD'] == 'POST' and environ['PATH_INFO']== '/recg':
+    # request_body = environ['wsgi.input']
+    if environ['REQUEST_METHOD'] == 'POST' and environ['PATH_INFO'] == '/recg':
         data = request_data(environ["wsgi.input"].read())
         status = '200 OK'
-    elif environ['REQUEST_METHOD'] == 'POST' and environ['PATH_INFO']== '/state':
+    elif environ['REQUEST_METHOD'] == 'POST' and environ['PATH_INFO'] == '/state':
         data = state(environ["wsgi.input"].read())
         status = '200 OK'
     else:
-        data = json.dumps({'carinfo':None,'msg':'Request Error','code':101})
+        data = json.dumps({'carinfo': None, 'msg': 'Request Error',
+                           'code': 101})
         status = '400 Request Error'
-        
+
     response_headers = [
-        ('Content-type', 'text/plain'),
+        ('Content-type', 'application/json'),
         ('Content-Length', str(len(data)))
     ]
     start_response(status, response_headers)
     return iter([data])
 
+
 def server(description=None, **kwargs):
     '''Create the :class:`.WSGIServer` running :func:`hello`.'''
     description = description or 'RecgServer Application'
 
-    return wsgi.WSGIServer(hello, name='RecgServer', description=description, **kwargs)
+    return wsgi.WSGIServer(hello, name='RecgServer',
+                           description=description, **kwargs)
+
 
 def state(wsgi_input):
     data = urllib.unquote_plus(wsgi_input)
-    post_data = urlparse.parse_qs(data,True)
-    
-    user_info =  gl.KEYSDICT.get(post_data.get('key',[None])[0],None)
-    #Èç¹ûKEY²»ÕıÈ··µ»Ø´íÎó
+    post_data = urlparse.parse_qs(data, True)
+
+    user_info = gl.KEYSDICT.get(post_data.get('key', [None])[0], None)
+    # å¦‚æœKEYä¸æ­£ç¡®è¿”å›é”™è¯¯
     if user_info is None:
-        return json.dumps({'carinfo':None,'msg':'Key Error','code':105})
+        return json.dumps({'carinfo': None, 'msg': 'Key Error', 'code': 105})
     else:
-        return json.dumps({'carinfo':None,'msg':'State','code':120,'state':{'threads':gl.THREADS,'qsize':gl.P_SIZE},'user':user_info})
+        return json.dumps({'carinfo': None, 'msg': 'State', 'code': 120,
+                           'state': {'threads': gl.THREADS,
+                                     'qsize': gl.P_SIZE},
+                           'user': user_info})
+
 
 def request_data(wsgi_input):
     data = urllib.unquote_plus(wsgi_input)
-    post_data = urlparse.parse_qs(data,True)
-    #print post_data
-    user_info =  gl.KEYSDICT.get(post_data.get('key',[None])[0],None)
+    post_data = urlparse.parse_qs(data, True)
+    # print post_data
+    user_info = gl.KEYSDICT.get(post_data.get('key', [None])[0], None)
 
-    #Èç¹ûKEY²»ÕıÈ··µ»Ø´íÎó
+    # å¦‚æœKEYä¸æ­£ç¡®è¿”å›é”™è¯¯
     if user_info is None:
-        return json.dumps({'carinfo':None,'msg':'Key Error','code':105})
-    #JSON¸ñÊ½´íÎó
-    if post_data.get('info',None) == None:
-        return json.dumps({'carinfo':None,'msg':'No Info Parameter','code':110})
+        return json.dumps({'carinfo': None, 'msg': 'Key Error', 'code': 105})
+    # JSONæ ¼å¼é”™è¯¯
+    if post_data.get('info', None) is None:
+        return json.dumps({'carinfo': None, 'msg': 'No Info Parameter',
+                           'code': 110})
     else:
         try:
-            info = json.loads(post_data.get('info',[''])[0])
+            info = json.loads(post_data.get('info', [''])[0])
         except Exception as e:
             logger.error(e)
-            return json.dumps({'carinfo':None,'msg':'Json Format Error','code':106})
+            return json.dumps({'carinfo': None, 'msg': 'Json Format Error',
+                               'code': 106})
+    # å›è°ƒç”¨çš„æ¶ˆæ¯é˜Ÿåˆ—
     info['queue'] = Queue.Queue()
 
     priority = 30
-    if gl.P_SIZE[priority] <= user_info['multiple']*gl.THREADS:
+    if gl.P_SIZE[priority] <= user_info['multiple'] * gl.THREADS:
         priority = user_info['priority']
     elif gl.RECGQUE.qsize() > gl.MAXSIZE:
-        return json.dumps({'carinfo':None,'msg':'Server Is Busy','code':108,'state':{'threads':gl.THREADS,'qsize':gl.P_SIZE},'user':user_info})
+        return json.dumps({'carinfo': None,
+                           'msg': 'Server Is Busy',
+                           'code': 108,
+                           'state': {'threads': gl.THREADS,
+                                     'qsize': gl.P_SIZE},
+                           'user': user_info})
     else:
         priority += user_info['priority'] + 10
-        
+
     gl.LOCK.acquire()
     gl.P_SIZE[priority] += 1
     gl.LOCK.release()
-    gl.RECGQUE.put((priority,info,post_data.get('key',[None])[0]))
-   
+    gl.RECGQUE.put((priority, info, post_data.get('key', [None])[0]))
+
     try:
         recginfo = info['queue'].get(timeout=15)
-        recginfo['state'] = {'threads':gl.THREADS,'qsize':gl.P_SIZE}
+        recginfo['state'] = {'threads': gl.THREADS, 'qsize': gl.P_SIZE}
     except Queue.Empty:
-        recginfo = {'carinfo':None,'msg':'Time Out','code':107,'state':{'threads':gl.THREADS,'qsize':gl.P_SIZE}}
+        recginfo = {'carinfo': None, 'msg': 'Time Out', 'code': 107,
+                    'state': {'threads': gl.THREADS, 'qsize': gl.P_SIZE}}
     finally:
         gl.LOCK.acquire()
         gl.P_SIZE[priority] -= 1
         gl.LOCK.release()
+
         return json.dumps(recginfo)
+
         del info['queue']
+
 
 class RecgServer:
     def __init__(self):
         self.crs = CarRecgSerIni()
         self.sysini = self.crs.get_sys_conf()
         self.centreini = self.crs.get_ser_centre_conf()
-        self.sl = U_Sqlite()
-        self.hf = HelpFunc()
+        # åˆ›å»ºsqliteå¯¹è±¡
+        self.sl = RSqlite()
+        # åˆ›å»ºHTTPå‡½æ•°å¯¹è±¡
+        self.rf = RequestsFunc()
+        # è¯†åˆ«æ¶ˆæ¯ä¼˜å…ˆé˜Ÿåˆ—
         gl.RECGQUE = Queue.PriorityQueue()
+        # çº¿ç¨‹é”
         gl.LOCK = threading.Lock()
 
-        #´´½¨Í¼Æ¬ÏÂÔØÎÄ¼ş¼Ğ
+        # åˆ›å»ºå›¾ç‰‡ä¸‹è½½æ–‡ä»¶å¤¹
         self.file = 'img'
-        if os.path.exists(self.file) == False:
+        if not os.path.exists(self.file):
             os.makedirs(self.file)
-        #´´½¨Í¼Æ¬½ØÈ¡ÎÄ¼ş¼Ğ
+        # åˆ›å»ºå›¾ç‰‡æˆªå–æ–‡ä»¶å¤¹
         self.file = 'cropimg'
-        if os.path.exists(self.file) == False:
+        if not os.path.exists(self.file):
             os.makedirs(self.file)
 
     def __del__(self):
+        gl.IS_QUIT = True
         del self.crs
         del self.sl
-        del self.hf
+        del self.rf
 
     def join_centre(self):
         time.sleep(3)
-        key_list = sorted(gl.KEYSDICT.iteritems(), key=lambda d:d[1]['priority'], reverse = False)
+        key_list = sorted(gl.KEYSDICT.iteritems(),
+                          key=lambda d: d[1]['priority'], reverse=False)
 
-        data = {'ip':self.sysini['selfip'],'port':self.sysini['port'],'key':key_list[0][0],'priority':10,'threads':self.sysini['threads'],'mark':''}
-        post_data={'serinfo':json.dumps(data)}
+        data = {'ip': self.sysini['selfip'],
+                'port': self.sysini['port'],
+                'key': key_list[0][0],
+                'priority': 10,
+                'threads': self.sysini['threads'],
+                'mark': ''}
+        post_data = {'serinfo': json.dumps(data)}
         try:
-            response,content = self.hf.send_post(self.centreini['ip'],'join',self.sysini['port'],post_data)
+            urlstr = 'http://%s:%s/%s' % (self.centreini['ip'],
+                                          self.sysini['port'], 'join')
+            content = self.rf.send_post(urlstr, post_data)
             logger.info(content)
         except Exception as e:
             logger.error(e)
 
     def main(self):
         for i in self.sl.get_users():
-            gl.KEYSDICT[i[1]] = {'priority':i[2],'multiple':i[3]}
-
-        gl.THREADS = self.sysini.get('threads',4)
-        gl.MAXSIZE = gl.THREADS*32  #ÔÊĞí×î´óÊı¶ÓÁĞÎªÏß³ÌÊı32±¶¡£
-        gl.P_SIZE = {10:0,20:0,30:0} #È¨ÏŞ¶ÓÁĞÊı
-        #´´½¨³µÁ¾Ê¶±ğÏß³Ì
+            gl.KEYSDICT[i['key']] = {'priority': i['priority'],
+                                     'multiple': i['multiple']}
+        print gl.KEYSDICT
+        # è¯†åˆ«çº¿ç¨‹æ•°
+        gl.THREADS = self.sysini.get('threads', 4)
+        # å…è®¸æœ€å¤§æ•°é˜Ÿåˆ—ä¸ºçº¿ç¨‹æ•°32å€ã€‚
+        gl.MAXSIZE = gl.THREADS * 32
+        # æƒé™é˜Ÿåˆ—æ•°
+        gl.P_SIZE = {10: 0, 20: 0, 30: 0}
+        # åˆ›å»ºè½¦è¾†è¯†åˆ«çº¿ç¨‹
         for c in range(gl.THREADS):
             RecgThread(c).start()
 
         t = threading.Thread(target=self.join_centre)
-        t.start()      
-        #web·şÎñ
+        t.start()
+        # webæœåŠ¡å¯åŠ¨
         server().start()
 
 if __name__ == '__main__':  # pragma nocover
-    initLogging(r'log\carrecgser.log')
+    init_logging(r'log\carrecgser.log')
     logger = logging.getLogger('root')
-        
+
     rs = RecgServer()
     rs.main()
-
