@@ -60,21 +60,27 @@ def init_logging(log_file_name):
 
 
 def version():
-    return 'SX-CarRecgServer V1.0.0'
+    return 'SX-CarRecgServer V1.1.0'
 
 
 def hello(environ, start_response):
-    '''The WSGI_ application handler which returns an iterable
-    over the "Hello World!" message.'''
-    # request_body = environ['wsgi.input']
-    if environ['REQUEST_METHOD'] == 'POST' and environ['PATH_INFO'] == '/recg':
-        data = request_data(environ["wsgi.input"].read())
-        status = '200 OK'
-    elif environ['REQUEST_METHOD'] == 'POST' and environ['PATH_INFO'] == '/state':
-        data = state(environ["wsgi.input"].read())
-        status = '200 OK'
+    '''WSGI_ application 处理方法，返回HTTP响应'''
+
+    if environ['REQUEST_METHOD'] == 'POST':
+        if environ['PATH_INFO'] == '/recg':
+            data = request_data(environ["wsgi.input"].read())
+            status = '200 OK'
+        elif environ['PATH_INFO'] == '/state':
+            data = state(environ["wsgi.input"].read())
+            status = '200 OK'
+        else:
+            data = json.dumps({'carinfo': None,
+                               'msg': 'Request Error',
+                               'code': 101})
+            status = '400 Request Error'
     else:
-        data = json.dumps({'carinfo': None, 'msg': 'Request Error',
+        data = json.dumps({'carinfo': None,
+                           'msg': 'Request Error',
                            'code': 101})
         status = '400 Request Error'
 
@@ -87,7 +93,7 @@ def hello(environ, start_response):
 
 
 def server(description=None, **kwargs):
-    '''Create the :class:`.WSGIServer` running :func:`hello`.'''
+    """Server服务启动"""
     description = description or 'RecgServer Application'
 
     return wsgi.WSGIServer(hello, name='RecgServer',
@@ -95,6 +101,7 @@ def server(description=None, **kwargs):
 
 
 def state(wsgi_input):
+    """返回服务状态"""
     data = urllib.unquote_plus(wsgi_input)
     post_data = urlparse.parse_qs(data, True)
 
@@ -110,9 +117,10 @@ def state(wsgi_input):
 
 
 def request_data(wsgi_input):
+    """识别请求信息"""
     data = urllib.unquote_plus(wsgi_input)
     post_data = urlparse.parse_qs(data, True)
-    # print post_data
+
     user_info = gl.KEYSDICT.get(post_data.get('key', [None])[0], None)
 
     # 如果KEY不正确返回错误
@@ -168,6 +176,7 @@ def request_data(wsgi_input):
 
 class RecgServer:
     def __init__(self):
+        # 配置文件
         self.crs = CarRecgSerIni()
         self.sysini = self.crs.get_sys_conf()
         self.centreini = self.crs.get_ser_centre_conf()
@@ -195,8 +204,14 @@ class RecgServer:
         del self.sl
         del self.rf
 
-    def join_centre(self):
-        time.sleep(3)
+    def join_centre(self, conn=True):
+        """连接中心服务器"""
+        if conn:
+            time.sleep(3)
+            threads = self.sysini['threads']
+        else:
+            threads = -99
+
         key_list = sorted(gl.KEYSDICT.iteritems(),
                           key=lambda d: d[1]['priority'], reverse=False)
 
@@ -204,7 +219,7 @@ class RecgServer:
                 'port': self.sysini['port'],
                 'key': key_list[0][0],
                 'priority': 10,
-                'threads': self.sysini['threads'],
+                'threads': threads,
                 'mark': ''}
         post_data = {'serinfo': json.dumps(data)}
         try:
@@ -219,7 +234,6 @@ class RecgServer:
         for i in self.sl.get_users():
             gl.KEYSDICT[i['key']] = {'priority': i['priority'],
                                      'multiple': i['multiple']}
-        print gl.KEYSDICT
         # 识别线程数
         gl.THREADS = self.sysini.get('threads', 4)
         # 允许最大数队列为线程数32倍。

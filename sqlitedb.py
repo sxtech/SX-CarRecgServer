@@ -3,6 +3,7 @@ import sqlite3
 
 
 def dict_factory(cursor, row):
+    """SQL查询返回字典类型"""
     d = {}
     for idx, col in enumerate(cursor.description):
         d[col[0]] = row[idx]
@@ -24,6 +25,7 @@ class RSqlite:
             pass
 
     def create_table(self):
+        """初始化数据库表"""
         sql = '''CREATE TABLE IF NOT EXISTS "user" (
                 "id"  INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 "key"  TEXT,
