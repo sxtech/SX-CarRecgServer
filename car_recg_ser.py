@@ -14,24 +14,17 @@
 109: Recg Server Error (识别服务错误)
 110: No Info Parameter (POST缺少info参数)
 '''
-import urllib
-import urlparse
+
+import os
+import time
 import json
 import threading
 import Queue
-import os
 import logging
 import logging.handlers
-import time
 
-try:
-    from pulsar import MethodNotAllowed
-except ImportError:  # pragma nocover
-    import sys
-    sys.path.append('../../')
-    from pulsar import MethodNotAllowed
-
-from pulsar.apps import wsgi
+from flask import Flask
+from flask import request
 
 import gl
 from recg_thread import RecgThread
@@ -60,52 +53,30 @@ def init_logging(log_file_name):
 
 
 def version():
-    return 'SX-CarRecgServer V1.1.0'
+    return 'SX-CarRecgServer V2.0.1'
 
 
-def hello(environ, start_response):
-    '''WSGI_ application 处理方法，返回HTTP响应'''
+app = Flask(__name__)
 
-    if environ['REQUEST_METHOD'] == 'POST':
-        if environ['PATH_INFO'] == '/recg':
-            data = request_data(environ["wsgi.input"].read())
-            status = '200 OK'
-        elif environ['PATH_INFO'] == '/state':
-            data = state(environ["wsgi.input"].read())
-            status = '200 OK'
-        else:
-            data = json.dumps({'carinfo': None,
-                               'msg': 'Request Error',
-                               'code': 101})
-            status = '400 Request Error'
+
+@app.route("/")
+def hello():
+    return "Welcome to use %s" % version()
+
+
+@app.route("/recg", methods=['GET', 'POST'])
+def recg():
+    if request.method == 'POST':
+        return request_data(request)
     else:
-        data = json.dumps({'carinfo': None,
+        return json.dumps({'carinfo': None,
                            'msg': 'Request Error',
                            'code': 101})
-        status = '400 Request Error'
-
-    response_headers = [
-        ('Content-type', 'application/json'),
-        ('Content-Length', str(len(data)))
-    ]
-    start_response(status, response_headers)
-    return iter([data])
 
 
-def server(description=None, **kwargs):
-    """Server服务启动"""
-    description = description or 'RecgServer Application'
-
-    return wsgi.WSGIServer(hello, name='RecgServer',
-                           description=description, **kwargs)
-
-
-def state(wsgi_input):
-    """返回服务状态"""
-    data = urllib.unquote_plus(wsgi_input)
-    post_data = urlparse.parse_qs(data, True)
-
-    user_info = gl.KEYSDICT.get(post_data.get('key', [None])[0], None)
+@app.route("/state", methods=['GET', 'POST'])
+def state():
+    user_info = gl.KEYSDICT.get(request.form.get('key', None))
     # 如果KEY不正确返回错误
     if user_info is None:
         return json.dumps({'carinfo': None, 'msg': 'Key Error', 'code': 105})
@@ -116,23 +87,24 @@ def state(wsgi_input):
                            'user': user_info})
 
 
-def request_data(wsgi_input):
-    """识别请求信息"""
-    data = urllib.unquote_plus(wsgi_input)
-    post_data = urlparse.parse_qs(data, True)
+def server(_port):
+    app.run(host="0.0.0.0", port=_port)
 
-    user_info = gl.KEYSDICT.get(post_data.get('key', [None])[0], None)
+
+def request_data(request):
+    """识别请求信息"""
+    user_info = gl.KEYSDICT.get(request.form.get('key', None), None)
 
     # 如果KEY不正确返回错误
     if user_info is None:
         return json.dumps({'carinfo': None, 'msg': 'Key Error', 'code': 105})
     # JSON格式错误
-    if post_data.get('info', None) is None:
+    if request.form.get('info', None) is None:
         return json.dumps({'carinfo': None, 'msg': 'No Info Parameter',
                            'code': 110})
     else:
         try:
-            info = json.loads(post_data.get('info', [''])[0])
+            info = json.loads(request.form.get('info', []))
         except Exception as e:
             logger.error(e)
             return json.dumps({'carinfo': None, 'msg': 'Json Format Error',
@@ -156,10 +128,10 @@ def request_data(wsgi_input):
     gl.LOCK.acquire()
     gl.P_SIZE[priority] += 1
     gl.LOCK.release()
-    gl.RECGQUE.put((priority, info, post_data.get('key', [None])[0]))
+    gl.RECGQUE.put((priority, info, request.form['key']))
 
     try:
-        recginfo = info['queue'].get(timeout=15)
+        recginfo = info['queue'].get(timeout=5)
         recginfo['state'] = {'threads': gl.THREADS, 'qsize': gl.P_SIZE}
     except Queue.Empty:
         recginfo = {'carinfo': None, 'msg': 'Time Out', 'code': 107,
@@ -247,7 +219,7 @@ class RecgServer:
         t = threading.Thread(target=self.join_centre)
         t.start()
         # web服务启动
-        server().start()
+        server(self.sysini.get('port', 8060))
 
 if __name__ == '__main__':  # pragma nocover
     init_logging(r'log\carrecgser.log')

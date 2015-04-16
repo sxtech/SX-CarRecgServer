@@ -8,10 +8,13 @@ import json
 
 def TestHttpPost():
   word=u'美国'.encode('utf8')
-  urlstr = 'http://localhost:8017/recg'
+  urlstr = 'http://localhost:8060/recg'
   
   json_data = json.dumps({'imgurl':'http://localhost/imgareaselect/imgs/1.jpg','coordinates':None})
-  #print json_data
+##  url_list = []
+##  for i in range(1000):
+##    url_list.append('http://localhost/imgareaselect/imgs/1.jpg')
+##  json_data = json.dumps(url_list)
   data={'key':'sx2767722_10','info': json_data}
   
   h = httplib2.Http('.cache')
