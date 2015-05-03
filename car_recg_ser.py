@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-车辆识别服务，使用python2.7版本，pulsar框架。
+车辆识别服务，使用python2.7版本，flask框架。
 返回代码：
 100: Success (识别成功)
 101: Request Error (请求错误)
@@ -12,7 +12,7 @@
 107: Time Out (超时)
 108: Server Is Busy (服务繁忙)
 109: Recg Server Error (识别服务错误)
-110: No Info Parameter (POST缺少info参数)
+#110: No Info Parameter (POST缺少info参数)
 '''
 
 import os
@@ -25,6 +25,10 @@ import logging.handlers
 
 from flask import Flask
 from flask import request
+from flask_restful import reqparse
+from flask_restful import abort
+from flask_restful import Api
+from flask_restful import Resource
 
 import gl
 from recg_thread import RecgThread
@@ -53,97 +57,89 @@ def init_logging(log_file_name):
 
 
 def version():
-    return 'SX-CarRecgServer V2.0.1'
+    return 'SX-CarRecgServer V2.1.0'
 
 
 app = Flask(__name__)
+api = Api(app)
 
 
-@app.route("/")
-def hello():
-    return "Welcome to use %s" % version()
+class Hello(Resource):
 
+    def get(self):
+        return {'message': "Welcome to use %s" % version()}
 
-@app.route("/recg", methods=['GET', 'POST'])
-def recg():
-    if request.method == 'POST':
-        return request_data(request)
-    else:
-        return json.dumps({'carinfo': None,
-                           'msg': 'Request Error',
-                           'code': 101})
+class RecgList(Resource):
 
+    def post(self):
+        """识别请求信息"""
+        if not request.json:
+            return {'package': None, 'msg': 'Bad Request', 'code': 101}, 400
+        if request.json.get('key', None) not in gl.KEYSDICT:
+            return {'package': None, 'msg': 'Key Error', 'code': 105}, 400
+        if 'info' not in request.json:
+            return {'package': None, 'msg': 'Json Format Error',
+                    'code': 106}, 400
+        if 'imgurl' not in request.json['info']:
+            return {'package': None, 'msg': 'Json Format Error',
+                    'code': 106}, 400
+        if 'coordinates' not in request.json['info']:
+            return {'package': None, 'msg': 'Json Format Error',
+                    'code': 106}, 400
+        
+        user_info = gl.KEYSDICT.get(request.json['key'], None)
+        # 回调用的消息队列
+        que = Queue.Queue()
 
-@app.route("/state", methods=['GET', 'POST'])
-def state():
-    user_info = gl.KEYSDICT.get(request.form.get('key', None))
-    # 如果KEY不正确返回错误
-    if user_info is None:
-        return json.dumps({'carinfo': None, 'msg': 'Key Error', 'code': 105})
-    else:
-        return json.dumps({'carinfo': None, 'msg': 'State', 'code': 120,
-                           'state': {'threads': gl.THREADS,
-                                     'qsize': gl.P_SIZE},
-                           'user': user_info})
+        priority = 30
+        if gl.P_SIZE[priority] <= user_info['multiple'] * gl.THREADS:
+            priority = user_info['priority']
+        elif gl.RECGQUE.qsize() > gl.MAXSIZE:
+            return {'carinfo': None, 'msg': 'Server Is Busy', 'code': 108,
+                    'state': {'threads': gl.THREADS, 'qsize': gl.P_SIZE},
+                    'user': user_info}
+        else:
+            priority += user_info['priority'] + 10
 
-
-def server(_port):
-    app.run(host="0.0.0.0", port=_port)
-
-
-def request_data(request):
-    """识别请求信息"""
-    user_info = gl.KEYSDICT.get(request.form.get('key', None), None)
-
-    # 如果KEY不正确返回错误
-    if user_info is None:
-        return json.dumps({'carinfo': None, 'msg': 'Key Error', 'code': 105})
-    # JSON格式错误
-    if request.form.get('info', None) is None:
-        return json.dumps({'carinfo': None, 'msg': 'No Info Parameter',
-                           'code': 110})
-    else:
-        try:
-            info = json.loads(request.form.get('info', []))
-        except Exception as e:
-            logger.error(e)
-            return json.dumps({'carinfo': None, 'msg': 'Json Format Error',
-                               'code': 106})
-    # 回调用的消息队列
-    info['queue'] = Queue.Queue()
-
-    priority = 30
-    if gl.P_SIZE[priority] <= user_info['multiple'] * gl.THREADS:
-        priority = user_info['priority']
-    elif gl.RECGQUE.qsize() > gl.MAXSIZE:
-        return json.dumps({'carinfo': None,
-                           'msg': 'Server Is Busy',
-                           'code': 108,
-                           'state': {'threads': gl.THREADS,
-                                     'qsize': gl.P_SIZE},
-                           'user': user_info})
-    else:
-        priority += user_info['priority'] + 10
-
-    gl.LOCK.acquire()
-    gl.P_SIZE[priority] += 1
-    gl.LOCK.release()
-    gl.RECGQUE.put((priority, info, request.form['key']))
-
-    try:
-        recginfo = info['queue'].get(timeout=5)
-        recginfo['state'] = {'threads': gl.THREADS, 'qsize': gl.P_SIZE}
-    except Queue.Empty:
-        recginfo = {'carinfo': None, 'msg': 'Time Out', 'code': 107,
-                    'state': {'threads': gl.THREADS, 'qsize': gl.P_SIZE}}
-    finally:
         gl.LOCK.acquire()
-        gl.P_SIZE[priority] -= 1
+        gl.P_SIZE[priority] += 1
         gl.LOCK.release()
+        gl.RECGQUE.put((priority, request.json['info'],
+                        request.json['key'], que))
 
-        return json.dumps(recginfo)
+        try:
+            recginfo = info['queue'].get(timeout=5)
+        except Queue.Empty:
+            recginfo = {'carinfo': None, 'msg': 'Time Out', 'code': 107}
+        finally:
+            gl.LOCK.acquire()
+            gl.P_SIZE[priority] -= 1
+            gl.LOCK.release()
 
-        del info['queue']
+            del que
+            
+            recginfo['state'] = {'threads': gl.THREADS, 'qsize': gl.P_SIZE}
+            
+            return recginfo
+
+
+class StateList(Resource):
+
+    def get(self):
+        if not request.json:
+            return {'package': None, 'msg': 'Bad Request', 'code': 101}, 400
+        if request.json.get('key', None) not in gl.KEYSDICT:
+            # 如果KEY不正确返回错误
+            return {'package': None, 'msg': 'Key Error', 'code': 105}, 400
+
+        return {'carinfo': None, 'msg': 'State', 'code': 120,
+                'state': {'threads': gl.THREADS, 'qsize': gl.P_SIZE},
+                'user': gl.KEYSDICT.get(request.json['key'])}
+
+
+api.add_resource(Hello, '/')
+api.add_resource(RecgList, '/recg')
+api.add_resource(StateList, '/state')
 
 
 class RecgServer:
@@ -219,7 +215,7 @@ class RecgServer:
         t = threading.Thread(target=self.join_centre)
         t.start()
         # web服务启动
-        server(self.sysini.get('port', 8060))
+        app.run(host="0.0.0.0", port=self.sysini.get('port', 8060))
 
 if __name__ == '__main__':  # pragma nocover
     init_logging(r'log\carrecgser.log')

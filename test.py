@@ -10,7 +10,7 @@ def TestHttpPost():
   word=u'美国'.encode('utf8')
   urlstr = 'http://localhost:8060/recg'
   
-  json_data = json.dumps({'imgurl':'http://localhost/imgareaselect/imgs/1.jpg','coordinates':None})
+  json_data = {'imgurl':'http://localhost/imgareaselect/imgs/1.jpg','coordinates':None}
 ##  url_list = []
 ##  for i in range(1000):
 ##    url_list.append('http://localhost/imgareaselect/imgs/1.jpg')
@@ -18,7 +18,7 @@ def TestHttpPost():
   data={'key':'sx2767722_10','info': json_data}
   
   h = httplib2.Http('.cache')
-  response,content = h.request(urlstr, 'POST', urlencode(data), headers={'Content-Type': 'application/x-www-form-urlencoded'})  
+  response,content = h.request(urlstr, 'POST', json.dumps(data), headers={'Content-Type': 'application/json'})  
   print content
   #print json.loads(content)['carinfo'][0]['hphm']
   

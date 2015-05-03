@@ -18,8 +18,6 @@ class RecgThread(threading.Thread):
         threading.Thread.__init__(self)
         # 识别线程ID
         self._id = _id
-        # 识别信息队列
-        self.queue = gl.RECGQUE
         # 创建识别引擎对象
         self.cre = CarRecgEngine()
         # HTTP客户端类对象
@@ -34,9 +32,9 @@ class RecgThread(threading.Thread):
             try:
                 if gl.IS_QUIT:
                     break
-                p, info, key = self.queue.get(block=False)
+                p, info, key, que = gl.RECGQUE.get(timeout=1)
             except Queue.Empty:
-                time.sleep(1)
+                pass
             except Exception as e:
                 logger.error(e)
                 time.sleep(1)
@@ -75,7 +73,7 @@ class RecgThread(threading.Thread):
                                     'code': 104}
 
                 try:
-                    info['queue'].put(recginfo)
+                    que.put(recginfo)
                 except Exception as e:
                     logger.exception(e)
 
