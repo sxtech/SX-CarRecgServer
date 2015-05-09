@@ -57,7 +57,7 @@ def init_logging(log_file_name):
 
 
 def version():
-    return 'SX-CarRecgServer V2.1.0'
+    return 'SX-CarRecgServer V2.1.1'
 
 
 app = Flask(__name__)
@@ -76,7 +76,7 @@ class RecgList(Resource):
         if not request.json:
             return {'package': None, 'msg': 'Bad Request', 'code': 101}, 400
         if request.json.get('key', None) not in gl.KEYSDICT:
-            return {'package': None, 'msg': 'Key Error', 'code': 105}, 400
+            return {'package': None, 'msg': 'Key Error', 'code': 105}
         if 'info' not in request.json:
             return {'package': None, 'msg': 'Json Format Error',
                     'code': 106}, 400
@@ -86,7 +86,7 @@ class RecgList(Resource):
         if 'coordinates' not in request.json['info']:
             return {'package': None, 'msg': 'Json Format Error',
                     'code': 106}, 400
-        
+
         user_info = gl.KEYSDICT.get(request.json['key'], None)
         # 回调用的消息队列
         que = Queue.Queue()
@@ -108,7 +108,7 @@ class RecgList(Resource):
                         request.json['key'], que))
 
         try:
-            recginfo = info['queue'].get(timeout=5)
+            recginfo = que.get(timeout=5)
         except Queue.Empty:
             recginfo = {'carinfo': None, 'msg': 'Time Out', 'code': 107}
         finally:
@@ -130,7 +130,7 @@ class StateList(Resource):
             return {'package': None, 'msg': 'Bad Request', 'code': 101}, 400
         if request.json.get('key', None) not in gl.KEYSDICT:
             # 如果KEY不正确返回错误
-            return {'package': None, 'msg': 'Key Error', 'code': 105}, 400
+            return {'package': None, 'msg': 'Key Error', 'code': 105}
 
         return {'carinfo': None, 'msg': 'State', 'code': 120,
                 'state': {'threads': gl.THREADS, 'qsize': gl.P_SIZE},
