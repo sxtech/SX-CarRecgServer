@@ -57,7 +57,7 @@ def init_logging(log_file_name):
 
 
 def version():
-    return 'SX-CarRecgServer V2.1.1'
+    return 'SX-CarRecgServer V2.2.0'
 
 
 app = Flask(__name__)
@@ -215,7 +215,8 @@ class RecgServer:
         t = threading.Thread(target=self.join_centre)
         t.start()
         # web服务启动
-        app.run(host="0.0.0.0", port=self.sysini.get('port', 8060))
+        app.run(host="0.0.0.0", port=self.sysini.get('port', 8060),
+                threaded=True)
 
 if __name__ == '__main__':  # pragma nocover
     init_logging(r'log\carrecgser.log')
