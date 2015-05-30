@@ -33,7 +33,7 @@ class RecgThread(threading.Thread):
             try:
                 if gl.IS_QUIT:
                     break
-                p, info, key, que = gl.RECGQUE.get(timeout=1)
+                p, request, que = gl.RECGQUE.get(timeout=1)
             except Queue.Empty:
                 pass
             except Exception as e:
@@ -44,7 +44,7 @@ class RecgThread(threading.Thread):
                 filename = os.path.join(app.config['IMG_PATH'],
                                         '%s.jpg' % str(self._id))
                 try:
-                    self.rf.get_url_img(info['imgurl'], filename)
+                    self.rf.get_url_img(request['imgurl'], filename)
                 except Exception as e:
                     logger.error(e)
                     recginfo = {'carinfo': None,
@@ -53,7 +53,7 @@ class RecgThread(threading.Thread):
                 else:
                     try:
                         carinfo = self.cre.imgrecg(filename,
-                                                   info['coordinates'])
+                                                   request['coordinates'])
                         if carinfo is None:
                             recginfo = {'carinfo': None,
                                         'msg': 'Recognise Error',
