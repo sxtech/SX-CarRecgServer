@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from app import app
-from models import User
+from models import User, Users
 import views
 from requests_func import RequestsFunc
 from recg_ser import RecgServer
