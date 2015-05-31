@@ -22,12 +22,12 @@ class CarRecgEngine:
     def __del__(self):
         self.dll.UnInitialEngine(self.engineID)
 
-    def imgrecg(self, path, coordinates=None):
+    def imgrecg(self, path, coord=[]):
         """识别车辆信息"""
         try:
             recg_path = None
-            if coordinates is not None:
-                path = self.crop_img(path, coordinates)
+            if coord != []:
+                path = self.crop_img(path, coord)
                 recg_path = path
 
             p_str_url = create_string_buffer(path)
@@ -58,11 +58,11 @@ class CarRecgEngine:
 
         return json.loads(j, 'gbk')
 
-    def crop_img(self, path, coordinates):
+    def crop_img(self, path, coord):
         """图片截取"""
         im = Image.open(path)
 
-        box = (coordinates[0], coordinates[1], coordinates[2], coordinates[3])
+        box = (coord[0], coord[1], coord[2], coord[3])
         region = im.crop(box)
 
         filename = os.path.basename(path)
