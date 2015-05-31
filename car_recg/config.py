@@ -9,3 +9,7 @@ MAXSIZE = 4 * 32
 IMG_PATH = 'img'
 # 图片截取文件夹
 CROP_PATH = 'crop'
+# 版本号
+VERSION = '2.3.0'
+# 超时
+TIMEOUT = 5
