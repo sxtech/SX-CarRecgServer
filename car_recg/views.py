@@ -51,7 +51,7 @@ class RecgList(Resource):
 
         parser.add_argument('key', type=unicode, required=True,
                             help='A key value is require', location='json')
-        parser.add_argument('url', type=unicode, required=True,
+        parser.add_argument('imgurl', type=unicode, required=True,
                             help='A jpg url is require', location='json')
         parser.add_argument('coordinates', type=list, required=True,
                             help='A coordinates array is require',
@@ -83,9 +83,9 @@ class RecgListApiV1(Resource):
     def post(self):
         parser = reqparse.RequestParser()
 
-        parser.add_argument('url', type=unicode, required=True,
+        parser.add_argument('imgurl', type=unicode, required=True,
                             help='A jpg url is require', location='json')
-        parser.add_argument('coordinates', type=list, required=True,
+        parser.add_argument('coord', type=list, required=True,
                             help='A coordinates array is require',
                             location='json')
         args = parser.parse_args()
@@ -123,8 +123,18 @@ class StateList(Resource):
                 'qsize': gl.RECGQUE.qsize()}
 
 
+class StateListApiV1(Resource):
+
+    @auth.login_required
+    def post(self):
+        return {'carinfo': None, 'msg': 'State', 'code': 120,
+                'threads': app.config['THREADS'],
+                'qsize': gl.RECGQUE.qsize()}
+
+
 api.add_resource(Index, '/')
 api.add_resource(RecgList, '/recg')
-api.add_resource(StateList, '/state')
 api.add_resource(RecgListApiV1, '/api/v1/recg')
+api.add_resource(StateList, '/state')
+api.add_resource(StateListApiV1, '/api/v1/state')
 
