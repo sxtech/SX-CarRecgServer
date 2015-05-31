@@ -52,8 +52,7 @@ class RecgThread(threading.Thread):
                                 'code': 103}
                 else:
                     try:
-                        carinfo = self.cre.imgrecg(filename,
-                                                   request['coordinates'])
+                        carinfo = self.cre.imgrecg(filename, request['coord'])
                         if carinfo is None:
                             recginfo = {'carinfo': None,
                                         'msg': 'Recognise Error',
