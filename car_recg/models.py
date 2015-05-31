@@ -22,3 +22,9 @@ class User(BaseModel):
     priority = IntegerField()
     multiple = IntegerField()
     mark = TextField()
+
+
+class Users(BaseModel):
+    username = TextField(unique=True)
+    password = TextField()
+
