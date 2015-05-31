@@ -7,6 +7,7 @@ import json
 import logging
 
 from PIL import Image
+from app import app
 
 logger = logging.getLogger('root')
 
@@ -17,17 +18,16 @@ class CarRecgEngine:
         """创建车型识别引擎"""
         self.dll = ctypes.cdll.LoadLibrary('CarRecogniseEngine.dll')
         self.engineID = self.dll.InitialEngine()
-        self.file = 'cropimg'
 
     def __del__(self):
         self.dll.UnInitialEngine(self.engineID)
 
-    def imgrecg(self, path, coordinates=None):
+    def imgrecg(self, path, coord=[]):
         """识别车辆信息"""
         try:
             recg_path = None
-            if coordinates is not None:
-                path = self.crop_img(path, coordinates)
+            if coord != []:
+                path = self.crop_img(path, coord)
                 recg_path = path
 
             p_str_url = create_string_buffer(path)
@@ -36,7 +36,7 @@ class CarRecgEngine:
             ret = self.dll.doRecg(self.engineID, byref(p_str_url),
                                   byref(sz_result), 1024)
 
-            res = sz_result.value.decode(encoding='gbk',errors='ignore')
+            res = sz_result.value.decode(encoding='gbk', errors='ignore')
 
             return json.loads(res)
         except Exception as e:
@@ -49,9 +49,6 @@ class CarRecgEngine:
             except Exception as e:
                 logger.error(e)
 
-    def uninit(self):
-        self.dll.UnInitialEngine(self.engineID)
-
     def rematch(self, j):
         """转化标准Json格式"""
         j = re.sub(r"{\s*(\w)", r'{"\1', j)
@@ -61,16 +58,16 @@ class CarRecgEngine:
 
         return json.loads(j, 'gbk')
 
-    def crop_img(self, path, coordinates):
+    def crop_img(self, path, coord):
         """图片截取"""
         im = Image.open(path)
 
-        box = (coordinates[0], coordinates[1], coordinates[2], coordinates[3])
+        box = (coord[0], coord[1], coord[2], coord[3])
         region = im.crop(box)
 
         filename = os.path.basename(path)
 
-        crop_path = os.path.join(self.file, filename)
+        crop_path = os.path.join(app.config['CROP_PATH'], filename)
         region.save(crop_path)
 
         return crop_path

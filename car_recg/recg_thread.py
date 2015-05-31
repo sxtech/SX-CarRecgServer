@@ -5,6 +5,7 @@ import Queue
 import logging
 import threading
 
+from app import app
 import gl
 from requests_func import RequestsFunc
 from carrecg import CarRecgEngine
@@ -23,7 +24,7 @@ class RecgThread(threading.Thread):
         # HTTP客户端类对象
         self.rf = RequestsFunc()
 
-    def kill(self):
+    def __del__(self):
         del self.cre
         del self.rf
 
@@ -32,7 +33,7 @@ class RecgThread(threading.Thread):
             try:
                 if gl.IS_QUIT:
                     break
-                p, info, key, que = gl.RECGQUE.get(timeout=1)
+                p, request, que = gl.RECGQUE.get(timeout=1)
             except Queue.Empty:
                 pass
             except Exception as e:
@@ -40,9 +41,10 @@ class RecgThread(threading.Thread):
                 time.sleep(1)
             else:
                 recginfo = {}
-                filename = os.path.join('img', '%s.jpg' % str(self._id))
+                filename = os.path.join(app.config['IMG_PATH'],
+                                        '%s.jpg' % str(self._id))
                 try:
-                    self.rf.get_url_img(info['imgurl'], filename)
+                    self.rf.get_url_img(request['imgurl'], filename)
                 except Exception as e:
                     logger.error(e)
                     recginfo = {'carinfo': None,
@@ -50,8 +52,7 @@ class RecgThread(threading.Thread):
                                 'code': 103}
                 else:
                     try:
-                        carinfo = self.cre.imgrecg(filename,
-                                                   info['coordinates'])
+                        carinfo = self.cre.imgrecg(filename, request['coord'])
                         if carinfo is None:
                             recginfo = {'carinfo': None,
                                         'msg': 'Recognise Error',
@@ -77,4 +78,3 @@ class RecgThread(threading.Thread):
                 except Exception as e:
                     logger.exception(e)
 
-        self.kill()

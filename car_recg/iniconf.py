@@ -2,7 +2,7 @@
 import ConfigParser
 
 
-class CarRecgSerIni:
+class MyIni:
 
     def __init__(self, confpath='recg.conf'):
         self.confpath = confpath
@@ -24,13 +24,3 @@ class CarRecgSerIni:
         conf['ip'] = self.cf.get('SERCENTRE', 'ip')
 
         return conf
-
-if __name__ == "__main__":
-
-    try:
-        ftpini = CarRecgSerIni()
-        s = ftpini.getSerCentreConf()
-        print s
-
-    except ConfigParser.NoOptionError as e:
-        print e
