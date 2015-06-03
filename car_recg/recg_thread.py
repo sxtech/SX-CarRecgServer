@@ -2,15 +2,12 @@
 import os
 import time
 import Queue
-import logging
 import threading
 
-from app import app
+from app import app, logger
 import gl
-from requests_func import RequestsFunc
+from requests_func import get_url_img
 from carrecg import CarRecgEngine
-
-logger = logging.getLogger('root')
 
 
 class RecgThread(threading.Thread):
@@ -21,12 +18,12 @@ class RecgThread(threading.Thread):
         self._id = _id
         # 创建识别引擎对象
         self.cre = CarRecgEngine()
-        # HTTP客户端类对象
-        self.rf = RequestsFunc()
+
+        logger.info('Recg thread %s start' % _id)
 
     def __del__(self):
         del self.cre
-        del self.rf
+        logger.info('Recg thread %s quit' % self._id)
 
     def run(self):
         while 1:
@@ -44,7 +41,7 @@ class RecgThread(threading.Thread):
                 filename = os.path.join(app.config['IMG_PATH'],
                                         '%s.jpg' % str(self._id))
                 try:
-                    self.rf.get_url_img(request['imgurl'], filename)
+                    get_url_img(request['imgurl'], filename)
                 except Exception as e:
                     logger.error(e)
                     recginfo = {'carinfo': None,
@@ -77,4 +74,3 @@ class RecgThread(threading.Thread):
                     que.put(recginfo)
                 except Exception as e:
                     logger.exception(e)
-
