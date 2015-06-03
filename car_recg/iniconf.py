@@ -5,9 +5,11 @@ import ConfigParser
 class MyIni:
 
     def __init__(self, confpath='recg.conf'):
-        self.confpath = confpath
         self.cf = ConfigParser.ConfigParser()
         self.cf.read(confpath)
+
+    def __del__(self):
+        del self.cf
 
     def get_sys_conf(self):
         """获取系统配置参数"""
