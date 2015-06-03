@@ -4,12 +4,9 @@ from ctypes import *
 import os
 import re
 import json
-import logging
 
 from PIL import Image
-from app import app
-
-logger = logging.getLogger('root')
+from app import app, logger
 
 
 class CarRecgEngine:
@@ -71,19 +68,3 @@ class CarRecgEngine:
         region.save(crop_path)
 
         return crop_path
-
-
-if __name__ == '__main__':
-    cr = CarRecgEngine()
-    area1 = (0,357,1316,2046)
-    area2 = (221,409,1194,1351)
-    #print cr.imgrecg('143429000.jpg',(0,0,1600,1200))
-    print cr.imgrecg('test2.jpg',None)
-    #a = '{"head":{"code":1,"count":0,"msg":"识别功"},"body":"[{"ywcl":1,"ywhp":1,"hpzl":"02","hphm":"粤LXA293","cllx":"K33","csys":"J","ppdm":"012","clpp":"比亚迪F3","kxd": 69,"jcsj":"2014-10-28 23":51":17"}]"}'
-    #b = '{"head":{"code":1,"count":0,"msg":"识别成功"},"body":"123"}'
-    #print a[]
-    #b = cr.imgrecg(a)
-    #print a
-    #print b['body']
-    #cr.uninit()
-    del cr
