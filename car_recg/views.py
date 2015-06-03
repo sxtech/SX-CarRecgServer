@@ -1,21 +1,13 @@
 # -*- coding: utf-8 -*-
-import os
-import time
-import json
-import threading
 import Queue
-import logging
 
 from flask import g, request
-from flask_restful import reqparse, abort, Resource
+from flask_restful import reqparse, Resource
 from passlib.hash import sha256_crypt
 
 from app import app, db, api, auth
-from models import User, Users
+from models import Users
 import gl
-from requests_func import RequestsFunc
-
-logger = logging.getLogger('root')
 
 
 @app.before_request
@@ -41,7 +33,8 @@ def verify_password(username, password):
 class Index(Resource):
 
     def get(self):
-        return {'msg': "Welcome to use SX-CarRecgServer %s" % app.config['VERSION']}
+        return {'recg_url': 'http://localhost/v1/recg',
+                'state_url': 'http://localhost/v1/state'}
 
 
 class RecgListApiV1(Resource):
@@ -76,13 +69,12 @@ class RecgListApiV1(Resource):
 class StateListApiV1(Resource):
 
     @auth.login_required
-    def post(self):
+    def get(self):
         return {'msg': 'State', 'code': 120,
                 'threads': app.config['THREADS'],
                 'qsize': gl.RECGQUE.qsize()}
 
 
 api.add_resource(Index, '/')
-api.add_resource(RecgListApiV1, '/api/v1/recg')
-api.add_resource(StateListApiV1, '/api/v1/state')
-
+api.add_resource(RecgListApiV1, '/v1/recg')
+api.add_resource(StateListApiV1, '/v1/state')
