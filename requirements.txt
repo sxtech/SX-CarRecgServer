@@ -1,0 +1,7 @@
+flask=0.10.1
+Flask-RESTful=0.3.2
+Flask-HTTPAuth=2.5.0
+peewee=2.6.0
+requests=2.5.0
+passlib=1.6.2
+Pillow=2.6.1

@@ -2,12 +2,14 @@
 import ConfigParser
 
 
-class CarRecgSerIni:
+class MyIni:
 
     def __init__(self, confpath='recg.conf'):
-        self.confpath = confpath
         self.cf = ConfigParser.ConfigParser()
         self.cf.read(confpath)
+
+    def __del__(self):
+        del self.cf
 
     def get_sys_conf(self):
         """获取系统配置参数"""
@@ -24,13 +26,3 @@ class CarRecgSerIni:
         conf['ip'] = self.cf.get('SERCENTRE', 'ip')
 
         return conf
-
-if __name__ == "__main__":
-
-    try:
-        ftpini = CarRecgSerIni()
-        s = ftpini.getSerCentreConf()
-        print s
-
-    except ConfigParser.NoOptionError as e:
-        print e
