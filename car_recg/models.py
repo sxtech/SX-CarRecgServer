@@ -17,14 +17,6 @@ class BaseModel(Model):
             return None
 
 
-class User(BaseModel):
-    key = TextField(unique=True)
-    priority = IntegerField()
-    multiple = IntegerField()
-    mark = TextField()
-
-
 class Users(BaseModel):
     username = TextField(unique=True)
     password = TextField()
-
