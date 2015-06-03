@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
+import Queue
 
 # 识别优先队列
-RECGQUE = None
-# 用户字典
-KEYSDICT = {}
+RECGQUE = Queue.PriorityQueue()
 # 全局锁
 LOCK = None
 # 退出系统
