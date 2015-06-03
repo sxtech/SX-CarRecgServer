@@ -5,7 +5,7 @@ from requests.auth import HTTPBasicAuth
 
 
 def requests_test():
-    url = 'http://127.0.0.1:8060/api/v1/recg'
+    url = 'http://127.0.0.1:8060/v1/recg'
     json_data = {'imgurl' : 'http://localhost/imgareaselect/imgs/1.jpg',
                  'coord' : []}
     r = requests.post(url, data=json.dumps(json_data),

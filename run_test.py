@@ -1,9 +1,9 @@
 from car_recg import app, Users
-from car_recg import online_logging, RecgServer, MyIni
+from car_recg import debug_logging, online_logging, RecgServer, MyIni
 
 if __name__ == '__main__':
     Users.create_table(True)
-    online_logging('log\carrecgser.log')
+    debug_logging('log\carrecgser.log')
     rs = RecgServer()
     rs.main()
     ini = MyIni()

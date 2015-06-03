@@ -1,5 +1,5 @@
 [SYSSET]
-threads = 2
+threads = 3
 port = 8060
 selfip = 127.0.0.1
 
