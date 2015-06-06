@@ -6,10 +6,13 @@ from flask_restful import Api
 from flask_httpauth import HTTPBasicAuth
 from peewee import SqliteDatabase
 
+from config import Production
+
 
 # create a flask application - this ``app`` object will be used to handle
 app = Flask(__name__)
-app.config.from_pyfile('config.py')
+config = Production()
+app.config.from_object(config)
 api = Api(app)
 
 db = SqliteDatabase(app.config['DATABASE'], journal_mode='WAL')

@@ -1,7 +1,0 @@
-[SYSSET]
-threads = 3
-port = 8060
-selfip = 127.0.0.1
-
-[SERCENTRE]
-ip = 127.0.0.1
