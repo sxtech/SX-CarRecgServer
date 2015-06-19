@@ -58,7 +58,7 @@ class RecgListApiV1(Resource):
         que = Queue.Queue()
 
         if app.config['RECGQUE'].qsize() > app.config['MAXSIZE']:
-            return {'message': 'Server is busy'}, 206
+            return {'message': 'Server is busy'}, 403
 
         imgname = '%32x' % random.getrandbits(128)
         imgpath = os.path.join(app.config['IMG_PATH'], '%s.jpg' % imgname)
@@ -66,20 +66,16 @@ class RecgListApiV1(Resource):
             get_url_img(request.json['imgurl'], imgpath)
         except Exception as e:
             logger.error('Error url: %s' % request.json['imgurl'])
-            return {'message': 'Url Error'}, 206
+            return {'message': 'Url Error'}, 403
 
         app.config['RECGQUE'].put((10, request.json, que, imgpath))
 
         try:
             recginfo = que.get(timeout=app.config['TIMEOUT'])
-            query = Recglist.insert(timestamp=int(time.time()),
-                                    imgurl=request.json['imgurl'],
-                                    recginfo=json.dumps(recginfo))
-            query.execute()
 
             os.remove(imgpath)
         except Queue.Empty:
-            return {'message': 'Time out'}, 206
+            return {'message': 'Time out'}, 408
         except Exception as e:
             logger.error(e)
         else:
