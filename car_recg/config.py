@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-
+import Queue
 
 class Config(object):
     DEBUG = True
