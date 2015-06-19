@@ -2,7 +2,6 @@
 import os
 
 from app import app, logger
-import gl
 from recg_thread import RecgThread
 from iniconf import MyIni
 
@@ -25,7 +24,7 @@ class RecgServer:
 
     def __del__(self):
         del self.ini
-        gl.IS_QUIT = True
+        app.config['IS_QUIT'] = True
         logger.info('Recg server quit')
 
     def main(self):

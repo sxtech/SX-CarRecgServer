@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from app import app
-from models import Users
+from models import Users, Recglist
 import views
 from recg_ser import RecgServer
 from my_logger import debug_logging, online_logging
