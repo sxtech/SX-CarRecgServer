@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import time
+
 from peewee import *
 
 from app import db
@@ -20,3 +22,10 @@ class BaseModel(Model):
 class Users(BaseModel):
     username = TextField(unique=True)
     password = TextField()
+
+
+class Recglist(BaseModel):
+    id = IntegerField(primary_key=True)
+    timestamp = IntegerField(default=int(time.time()))
+    imgurl = TextField()
+    recginfo = TextField()
