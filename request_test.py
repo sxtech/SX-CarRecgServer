@@ -2,7 +2,7 @@
 import json
 
 import requests
-from requests.auth import HTTPBasicAuth
+from requests.auth import HTTPBasicAuth, HTTPDigestAuth
 
 def get_url_img(url, path):
     """根据URL地址抓图到本地文件"""
@@ -24,7 +24,7 @@ def requests_test():
                  'coord' : []}
     r = requests.post(url, data=json.dumps(json_data),
                       headers={'content-type' : 'application/json'},
-                      auth=HTTPBasicAuth('kakou', 'sx2767722'))
+                      auth=HTTPBasicAuth('kakou', 'carrecgkakou'))
     print r.text, r.status_code
 
 if __name__ == '__main__':
