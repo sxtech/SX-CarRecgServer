@@ -20,8 +20,10 @@ class BaseModel(Model):
 
 
 class Users(BaseModel):
+    id = IntegerField(primary_key=True)
     username = TextField(unique=True)
     password = TextField()
+    banned = BooleanField(default=False)
 
 
 class Recglist(BaseModel):
