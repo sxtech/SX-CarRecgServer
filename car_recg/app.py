@@ -3,7 +3,7 @@ import logging
 
 from flask import Flask
 from flask_restful import Api
-from flask_httpauth import HTTPBasicAuth
+from flask_httpauth import HTTPBasicAuth, HTTPDigestAuth
 from peewee import SqliteDatabase
 
 from config import Production
