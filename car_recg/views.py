@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 import os
-import time
-import json
 import Queue
 import random
 
@@ -11,8 +9,8 @@ from passlib.hash import sha256_crypt
 
 from app import app, db, api, auth, logger
 from models import Users, Recglist
-import gl
 from requests_func import get_url_img
+
 
 @app.before_request
 def before_request():
@@ -26,19 +24,22 @@ def after_request(response):
     return response
 
 
-@auth.verify_password
-def verify_password(username, password):
-    user = Users.get_one(Users.username == username)
-    if not user:
-        return False
-    return sha256_crypt.verify(password, user.password)
+@auth.get_password
+def get_pw(username):
+    if app.config['USER'] == {}:
+        for user in Users.select().where(Users.banned == 0):
+            app.config['USER'][user.username] = user.password
+    if username in app.config['USER']:
+        return app.config['USER'].get(username)
+    return None
 
 
 class Index(Resource):
 
     def get(self):
         return {'recg_url': 'http://localhost/v1/recg',
-                'state_url': 'http://localhost/v1/state'}
+                'state_url': 'http://localhost/v1/state'}, 200,
+        {'Cache-Control': 'public, max-age=60, s-maxage=60'}
 
 
 class RecgListApiV1(Resource):
@@ -58,7 +59,7 @@ class RecgListApiV1(Resource):
         que = Queue.Queue()
 
         if app.config['RECGQUE'].qsize() > app.config['MAXSIZE']:
-            return {'message': 'Server is busy'}, 403
+            return {'message': 'Server is busy'}, 449
 
         imgname = '%32x' % random.getrandbits(128)
         imgpath = os.path.join(app.config['IMG_PATH'], '%s.jpg' % imgname)
@@ -66,7 +67,7 @@ class RecgListApiV1(Resource):
             get_url_img(request.json['imgurl'], imgpath)
         except Exception as e:
             logger.error('Error url: %s' % request.json['imgurl'])
-            return {'message': 'Url Error'}, 403
+            return {'message': 'Url error'}, 400
 
         app.config['RECGQUE'].put((10, request.json, que, imgpath))
 
@@ -75,7 +76,7 @@ class RecgListApiV1(Resource):
 
             os.remove(imgpath)
         except Queue.Empty:
-            return {'message': 'Time out'}, 408
+            return {'message': 'Timeout'}, 408
         except Exception as e:
             logger.error(e)
         else:
@@ -88,9 +89,8 @@ class StateListApiV1(Resource):
 
     @auth.login_required
     def get(self):
-        return {'msg': 'State', 'code': 120,
-                'threads': app.config['THREADS'],
-                'qsize': gl.RECGQUE.qsize()}
+        return {'threads': app.config['THREADS'],
+                'qsize': app.config['RECGQUE'].qsize()}
 
 
 api.add_resource(Index, '/')
