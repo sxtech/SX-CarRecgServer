@@ -2,6 +2,7 @@
 import os
 import Queue
 
+
 class Config(object):
     DEBUG = True
     BASEDIR = os.path.abspath(os.path.dirname(__file__))
@@ -25,10 +26,13 @@ class Config(object):
     RECGQUE = Queue.PriorityQueue()
     # 退出标记
     IS_QUIT = False
+    # 用户字典
+    USER = {'kakou': 'carrecgkakou'}
+
 
 class Develop(Config):
     pass
 
+
 class Production(Config):
     DEBUG = False
-
