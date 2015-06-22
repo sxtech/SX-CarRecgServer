@@ -27,7 +27,7 @@ class Config(object):
     # 退出标记
     IS_QUIT = False
     # 用户字典
-    USER = {'kakou': 'carrecgkakou'}
+    USER = {}
 
 
 class Develop(Config):
