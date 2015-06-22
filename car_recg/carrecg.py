@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-import ctypes
-from ctypes import *
 import os
 import re
 import json
+import ctypes
+from ctypes import *
 
 from PIL import Image
+
 from app import app, logger
 
 
