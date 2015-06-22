@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
+import os
 import Queue
+import random
 
 from flask import g, request
 from flask_restful import reqparse, Resource
 from passlib.hash import sha256_crypt
 
-from app import app, db, api, auth
-from models import Users
-import gl
+from app import app, db, api, auth, logger
+from models import Users, Recglist
+from requests_func import get_url_img
 
 
 @app.before_request
@@ -22,19 +24,22 @@ def after_request(response):
     return response
 
 
-@auth.verify_password
-def verify_password(username, password):
-    user = Users.get_one(Users.username == username)
-    if not user:
-        return False
-    return sha256_crypt.verify(password, user.password)
+@auth.get_password
+def get_pw(username):
+    if app.config['USER'] == {}:
+        for user in Users.select().where(Users.banned == 0):
+            app.config['USER'][user.username] = user.password
+    if username in app.config['USER']:
+        return app.config['USER'].get(username)
+    return None
 
 
 class Index(Resource):
 
     def get(self):
         return {'recg_url': 'http://localhost/v1/recg',
-                'state_url': 'http://localhost/v1/state'}
+                'state_url': 'http://localhost/v1/state'}, 200,
+        {'Cache-Control': 'public, max-age=60, s-maxage=60'}
 
 
 class RecgListApiV1(Resource):
@@ -53,26 +58,39 @@ class RecgListApiV1(Resource):
         # 回调用的消息队列
         que = Queue.Queue()
 
-        if gl.RECGQUE.qsize() > app.config['MAXSIZE']:
-            return {'carinfo': None, 'msg': 'Server Is Busy', 'code': 108}, 202
+        if app.config['RECGQUE'].qsize() > app.config['MAXSIZE']:
+            return {'message': 'Server is busy'}, 449
 
-        gl.RECGQUE.put((10, request.json, que))
+        imgname = '%32x' % random.getrandbits(128)
+        imgpath = os.path.join(app.config['IMG_PATH'], '%s.jpg' % imgname)
+        try:
+            get_url_img(request.json['imgurl'], imgpath)
+        except Exception as e:
+            logger.error('Error url: %s' % request.json['imgurl'])
+            return {'message': 'Url error'}, 400
+
+        app.config['RECGQUE'].put((10, request.json, que, imgpath))
 
         try:
             recginfo = que.get(timeout=app.config['TIMEOUT'])
+
+            os.remove(imgpath)
         except Queue.Empty:
-            recginfo = {'carinfo': None, 'msg': 'Time Out', 'code': 107}, 202
-        finally:
-            return recginfo
+            return {'message': 'Timeout'}, 408
+        except Exception as e:
+            logger.error(e)
+        else:
+            return {'imgurl': request.json['imgurl'],
+                    'coord': request.json['coord'],
+                    'recginfo': recginfo}, 201
 
 
 class StateListApiV1(Resource):
 
     @auth.login_required
     def get(self):
-        return {'msg': 'State', 'code': 120,
-                'threads': app.config['THREADS'],
-                'qsize': gl.RECGQUE.qsize()}
+        return {'threads': app.config['THREADS'],
+                'qsize': app.config['RECGQUE'].qsize()}
 
 
 api.add_resource(Index, '/')

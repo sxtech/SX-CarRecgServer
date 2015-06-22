@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
-import os
 import time
 import Queue
 import threading
 
 from app import app, logger
-import gl
-from requests_func import get_url_img
 from carrecg import CarRecgEngine
 
 
@@ -28,49 +25,28 @@ class RecgThread(threading.Thread):
     def run(self):
         while 1:
             try:
-                if gl.IS_QUIT:
+                if app.config['IS_QUIT']:
                     break
-                p, request, que = gl.RECGQUE.get(timeout=1)
+                p, request, que, imgpath = app.config['RECGQUE'].get(timeout=1)
             except Queue.Empty:
                 pass
             except Exception as e:
                 logger.error(e)
                 time.sleep(1)
             else:
-                recginfo = {}
-                filename = os.path.join(app.config['IMG_PATH'],
-                                        '%s.jpg' % str(self._id))
                 try:
-                    get_url_img(request['imgurl'], filename)
-                except Exception as e:
-                    logger.error(e)
-                    recginfo = {'carinfo': None,
-                                'msg': 'Url Error',
-                                'code': 103}
-                else:
-                    try:
-                        carinfo = self.cre.imgrecg(filename, request['coord'])
-                        if carinfo is None:
-                            recginfo = {'carinfo': None,
-                                        'msg': 'Recognise Error',
-                                        'code': 102}
-                            logger.error('Recognise Error')
-                        elif carinfo['head']['code'] == 0:
-                            recginfo = {'carinfo': None,
-                                        'msg': 'Recg Server Error',
-                                        'code': 109}
-                        else:
-                            recginfo = {'carinfo': carinfo['body'],
-                                        'msg': 'Success',
-                                        'code': 100}
-                        os.remove(filename)
-                    except Exception as e:
-                        logger.exception(e)
-                        recginfo = {'carinfo': None,
-                                    'msg': 'Unknow Error',
-                                    'code': 104}
-
-                try:
-                    que.put(recginfo)
+                    carinfo = self.cre.imgrecg(imgpath, request['coord'])
+                    if carinfo is None:
+                        result = None
+                        logger.error('Recognise Error')
+                    elif carinfo['head']['code'] == 0:
+                        result = None
+                    else:
+                        result = carinfo['body']
                 except Exception as e:
                     logger.exception(e)
+                    result = None
+                try:
+                    que.put(result)
+                except Exception as e:
+                    logger.error(e)
