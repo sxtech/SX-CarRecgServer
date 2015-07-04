@@ -5,3 +5,4 @@ peewee=2.6.0
 requests=2.5.0
 passlib=1.6.2
 Pillow=2.6.1
+arrow=0.5.4
