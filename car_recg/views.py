@@ -3,6 +3,7 @@ import os
 import Queue
 import random
 
+import arrow
 from flask import g, request
 from flask_restful import reqparse, Resource
 from passlib.hash import sha256_crypt
@@ -67,7 +68,7 @@ class RecgListApiV1(Resource):
             get_url_img(request.json['imgurl'], imgpath)
         except Exception as e:
             logger.error('Error url: %s' % request.json['imgurl'])
-            return {'message': 'Url error'}, 400
+            return {'message': 'URL error'}, 400
 
         app.config['RECGQUE'].put((10, request.json, que, imgpath))
 
@@ -93,6 +94,41 @@ class StateListApiV1(Resource):
                 'qsize': app.config['RECGQUE'].qsize()}
 
 
+class UploadRecgListApiV1(Resource):
+
+    @auth.login_required
+    def post(self):
+        # 文件夹路径 string
+        filepath = os.path.join(app.config['UPLOAD_PATH'],
+                                arrow.now().format('YYYYMMDD'))
+        if not os.path.exists(filepath):
+            os.makedirs(filepath)
+        try:
+            # 上传文件命名 随机32位16进制字符 string
+            imgname = '%32x' % random.getrandbits(128)
+            # 文件绝对路径 string
+            imgpath = os.path.join(filepath, '%s.jpg' % imgname)
+            f = request.files['file']
+            f.save(imgpath)
+        except Exception as e:
+            logger.error(e)
+            return {'message': 'File error'}, 400
+
+        # 回调用的消息队列 object
+        que = Queue.Queue()
+        # 识别参数字典 dict
+        r = {'coord': []}
+        app.config['RECGQUE'].put((9, r, que, imgpath))
+        try:
+            recginfo = que.get(timeout=app.config['TIMEOUT'])
+        except Queue.Empty:
+            return {'message': 'Timeout'}, 408
+        except Exception as e:
+            logger.error(e)
+        else:
+            return {'coord': r['coord'], 'recginfo': recginfo}, 201
+
 api.add_resource(Index, '/')
 api.add_resource(RecgListApiV1, '/v1/recg')
 api.add_resource(StateListApiV1, '/v1/state')
+api.add_resource(UploadRecgListApiV1, '/v1/uploadrecg')
